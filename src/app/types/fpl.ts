@@ -43,10 +43,6 @@ export interface Player {
   status: string; // 'a' = available, 'i' = injured, 'd' = doubtful, 's' = suspended
   news: string;
   photo: string;
-  code: number;
-  team_code: number;
-  transfers_in_event: number;
-  transfers_out_event: number;
 }
 
 export interface Fixture {

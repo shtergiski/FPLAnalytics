@@ -49,9 +49,14 @@ export function FDRFixturesPage() {
     const teamFixtures = fixtures
       .filter(f => 
         (f.team_h === team.id || f.team_a === team.id) && 
-        !f.finished && 
-        f.event !== null
+        !f.finished
       )
+      .sort((a, b) => {
+        // Sort by event number, handling null events
+        const aEvent = a.event ?? 999;
+        const bEvent = b.event ?? 999;
+        return aEvent - bEvent;
+      })
       .slice(0, 5) // Take up to 5 remaining fixtures
       .map(f => {
         const isHome = f.team_h === team.id;
@@ -60,9 +65,9 @@ export function FDRFixturesPage() {
         const difficulty = isHome ? f.team_h_difficulty : f.team_a_difficulty;
         
         return {
-          gameweek: f.event,
+          gameweek: f.event || 'TBC',
           opponent: opponent?.short_name || 'TBC',
-          difficulty,
+          difficulty: difficulty || 3,
           isHome,
         };
       });
@@ -156,13 +161,13 @@ export function FDRFixturesPage() {
       </Card>
 
       {/* FDR Table */}
-      <Card className="p-6 overflow-x-auto">
+      <Card className="p-3 sm:p-6 overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b-2 border-gray-200">
-              <th className="text-left py-4 px-4 font-bold text-gray-900 sticky left-0 bg-white z-10">Rank</th>
+              <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-bold text-gray-900 lg:sticky lg:left-0 bg-white lg:z-10 text-xs sm:text-base">Rank</th>
               <th 
-                className="text-left py-4 px-4 font-bold text-gray-900 sticky left-16 bg-white z-10 cursor-pointer hover:bg-gray-50"
+                className="text-left py-3 sm:py-4 px-2 sm:px-4 font-bold text-gray-900 lg:sticky lg:left-16 bg-white lg:z-10 cursor-pointer hover:bg-gray-50 text-xs sm:text-base"
                 onClick={() => handleSort('team')}
               >
                 <div className="flex items-center">
@@ -173,7 +178,7 @@ export function FDRFixturesPage() {
               {Array.from({ length: fixtureCount }).map((_, index) => (
                 <th 
                   key={index} 
-                  className="text-center py-4 px-4 font-bold text-gray-900 cursor-pointer hover:bg-gray-50"
+                  className="text-center py-3 sm:py-4 px-2 sm:px-4 font-bold text-gray-900 cursor-pointer hover:bg-gray-50 text-xs sm:text-base"
                   onClick={() => handleSort(`gw${index}`)}
                 >
                   <div className="flex items-center justify-center">
@@ -183,7 +188,7 @@ export function FDRFixturesPage() {
                 </th>
               ))}
               <th 
-                className="text-center py-4 px-4 font-bold text-gray-900 cursor-pointer hover:bg-gray-50"
+                className="text-center py-3 sm:py-4 px-2 sm:px-4 font-bold text-gray-900 cursor-pointer hover:bg-gray-50 text-xs sm:text-base"
                 onClick={() => handleSort('avgFDR')}
               >
                 <div className="flex items-center justify-center">
@@ -204,22 +209,22 @@ export function FDRFixturesPage() {
                     isBestOverallFDR ? 'bg-green-50' : ''
                   }`}
                 >
-                  <td className={`py-3 px-4 sticky left-0 ${isBestOverallFDR ? 'bg-green-50' : 'bg-white'}`}>
+                  <td className={`py-2 sm:py-3 px-2 sm:px-4 lg:sticky lg:left-0 text-xs sm:text-base ${isBestOverallFDR ? 'bg-green-50' : 'bg-white'}`}>
                     <div className="font-bold text-purple-600">
                       #{index + 1}
                       {isBestOverallFDR && <span className="ml-1 text-yellow-500">⭐</span>}
                     </div>
                   </td>
-                  <td className={`py-3 px-4 sticky left-16 ${isBestOverallFDR ? 'bg-green-50' : 'bg-white'}`}>
-                    <div className="flex items-center gap-3">
+                  <td className={`py-2 sm:py-3 px-2 sm:px-4 lg:sticky lg:left-16 ${isBestOverallFDR ? 'bg-green-50' : 'bg-white'}`}>
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <img
                         src={`https://resources.premierleague.com/premierleague/badges/70/t${data.team.code}.png`}
                         alt={data.team.name}
-                        className="w-8 h-8"
+                        className="w-6 h-6 sm:w-8 sm:h-8"
                       />
                       <div>
-                        <div className="font-semibold text-gray-900">{data.team.short_name}</div>
-                        <div className="text-xs text-gray-500">{data.team.name}</div>
+                        <div className="font-semibold text-gray-900 text-xs sm:text-base">{data.team.short_name}</div>
+                        <div className="text-xs text-gray-500 hidden sm:block">{data.team.name}</div>
                       </div>
                     </div>
                   </td>
@@ -229,36 +234,36 @@ export function FDRFixturesPage() {
                     
                     if (!fixture) {
                       return (
-                        <td key={gwIndex} className="py-3 px-4 text-center">
-                          <div className="bg-gray-200 rounded-lg p-3">
+                        <td key={gwIndex} className="py-2 sm:py-3 px-2 sm:px-4 text-center">
+                          <div className="bg-gray-200 rounded-lg p-2 sm:p-3">
                             <div className="text-xs text-gray-500">-</div>
                           </div>
                         </td>
                       );
                     }
                     return (
-                      <td key={gwIndex} className="py-3 px-4">
-                        <div className={`${getFDRColor(fixture.difficulty)} rounded-lg p-3 flex flex-col items-center justify-center min-h-[60px] relative ${
+                      <td key={gwIndex} className="py-2 sm:py-3 px-2 sm:px-4">
+                        <div className={`${getFDRColor(fixture.difficulty)} rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center min-h-[50px] sm:min-h-[60px] relative ${
                           isBestFixture ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
                         }`}>
                           {isBestFixture && (
-                            <Star className={`absolute -top-2 -right-2 w-5 h-5 fill-yellow-400 text-yellow-400`} />
+                            <Star className={`absolute -top-1 sm:-top-2 -right-1 sm:-right-2 w-4 h-4 sm:w-5 sm:h-5 fill-yellow-400 text-yellow-400`} />
                           )}
                           <div className={`text-xs font-bold ${getFDRTextColor(fixture.difficulty)}`}>
                             {fixture.isHome ? 'H' : 'A'}
                           </div>
-                          <div className={`text-sm font-bold ${getFDRTextColor(fixture.difficulty)} mt-1`}>
+                          <div className={`text-xs sm:text-sm font-bold ${getFDRTextColor(fixture.difficulty)} mt-0.5 sm:mt-1`}>
                             {fixture.opponent}
                           </div>
-                          <div className={`text-xs ${getFDRTextColor(fixture.difficulty)} opacity-70 mt-1`}>
+                          <div className={`text-xs ${getFDRTextColor(fixture.difficulty)} opacity-70 mt-0.5 sm:mt-1 hidden sm:block`}>
                             FDR: {fixture.difficulty}
                           </div>
                         </div>
                       </td>
                     );
                   })}
-                  <td className="py-3 px-4 text-center">
-                    <div className="font-bold text-lg text-gray-900">
+                  <td className="py-2 sm:py-3 px-2 sm:px-4 text-center">
+                    <div className="font-bold text-base sm:text-lg text-gray-900">
                       {data.avgFDR.toFixed(2)}
                     </div>
                   </td>

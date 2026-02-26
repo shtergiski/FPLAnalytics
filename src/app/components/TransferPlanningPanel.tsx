@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import { Card } from './ui/card';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Plus, Minus, AlertTriangle, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
-import { Player } from '../../types/fpl';
+import { Player } from './../types/fpl';
 
 interface TransferPlanProps {
   players: Player[];
@@ -136,7 +136,7 @@ export function TransferPlanningPanel({ players, currentSquad, budget, freeTrans
     if (gwIndex === -1) return;
 
     const newTransfers = [...transfers];
-    
+
     if (selectingFor === 'out') {
       newTransfers[gwIndex].playerOut = player;
     } else {
@@ -172,7 +172,7 @@ export function TransferPlanningPanel({ players, currentSquad, budget, freeTrans
       {/* Summary Card */}
       <Card className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200">
         <h3 className="text-lg font-bold text-gray-900 mb-4">📊 Transfer Planning Summary</h3>
-        
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white p-4 rounded-lg">
             <div className="text-sm text-gray-600">Remaining Budget</div>
@@ -350,7 +350,7 @@ export function TransferPlanningPanel({ players, currentSquad, budget, freeTrans
                 >
                   <div className="font-bold">{player.web_name}</div>
                   <div className="text-sm text-gray-600">
-                    {player.team_name} • {['', 'GKP', 'DEF', 'MID', 'FWD'][player.element_type]} • 
+                    {player.team_name} • {['', 'GKP', 'DEF', 'MID', 'FWD'][player.element_type]} •
                     £{(player.now_cost / 10).toFixed(1)}m • {player.total_points} pts
                   </div>
                 </div>

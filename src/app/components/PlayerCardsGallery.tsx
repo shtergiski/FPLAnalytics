@@ -27,7 +27,7 @@ export function PlayerCardsGallery({ players }: PlayerCardsGalleryProps) {
     if (searchQuery) {
       filtered = filtered.filter(p =>
         p.web_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.team_name!.toLowerCase().includes(searchQuery.toLowerCase())
+        p.team_name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -122,24 +122,24 @@ export function PlayerCardsGallery({ players }: PlayerCardsGalleryProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+      <div className="flex flex-col md:flex-row gap-3 sm:gap-4 items-start md:items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Player Cards Gallery</h2>
-          <p className="text-gray-600">Export shareable player cards for social media</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Player Cards Gallery</h2>
+          <p className="text-sm sm:text-base text-gray-600">Export shareable player cards for social media</p>
         </div>
         <div className="flex items-center gap-2">
-          <Download className="w-5 h-5 text-purple-600" />
-          <span className="text-sm font-semibold text-gray-700">
+          <Download className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+          <span className="text-xs sm:text-sm font-semibold text-gray-700">
             {filteredPlayers.length} cards available
           </span>
         </div>
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -153,37 +153,41 @@ export function PlayerCardsGallery({ players }: PlayerCardsGalleryProps) {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2">
             <Button
               variant={filterCategory === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterCategory('all')}
+              className="whitespace-nowrap"
             >
-              <Target className="w-4 h-4 mr-2" />
+              <Target className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               All
             </Button>
             <Button
               variant={filterCategory === 'top' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterCategory('top')}
+              className="whitespace-nowrap"
             >
-              <Award className="w-4 h-4 mr-2" />
+              <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Top Scorers
             </Button>
             <Button
               variant={filterCategory === 'form' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterCategory('form')}
+              className="whitespace-nowrap"
             >
-              <TrendingUp className="w-4 h-4 mr-2" />
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               In Form
             </Button>
             <Button
               variant={filterCategory === 'value' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilterCategory('value')}
+              className="whitespace-nowrap"
             >
-              <Zap className="w-4 h-4 mr-2" />
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Best Value
             </Button>
           </div>
@@ -191,7 +195,7 @@ export function PlayerCardsGallery({ players }: PlayerCardsGalleryProps) {
       </Card>
 
       {/* Gallery Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
         {filteredPlayers.map(player => (
           <PlayerMiniCard key={player.id} player={player} />
         ))}

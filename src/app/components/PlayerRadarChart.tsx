@@ -45,35 +45,36 @@ export function PlayerRadarChart({ players, className = '' }: PlayerRadarChartPr
   ];
 
   return (
-    <div className={`bg-white rounded-2xl p-6 ${className}`}>
-      <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
+    <div className={`bg-white rounded-2xl p-4 sm:p-6 ${className}`}>
+      <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center">
         Player Comparison
       </h3>
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div className="text-center">
-          <div className="text-lg font-bold text-gray-900">{player1.web_name}</div>
-          <div className="text-sm text-gray-600">{player1.team_name}</div>
-          <div className="text-sm font-semibold text-purple-600">
+          <div className="text-sm sm:text-lg font-bold text-gray-900 truncate px-1">{player1.web_name}</div>
+          <div className="text-xs sm:text-sm text-gray-600 truncate">{player1.team_name}</div>
+          <div className="text-xs sm:text-sm font-semibold text-purple-600">
             £{(player1.now_cost / 10).toFixed(1)}m
           </div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold text-gray-900">{player2.web_name}</div>
-          <div className="text-sm text-gray-600">{player2.team_name}</div>
-          <div className="text-sm font-semibold text-purple-600">
+          <div className="text-sm sm:text-lg font-bold text-gray-900 truncate px-1">{player2.web_name}</div>
+          <div className="text-xs sm:text-sm text-gray-600 truncate">{player2.team_name}</div>
+          <div className="text-xs sm:text-sm font-semibold text-purple-600">
             £{(player2.now_cost / 10).toFixed(1)}m
           </div>
         </div>
       </div>
       
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={300} className="sm:!h-[400px]">
         <RadarChart data={data}>
           <PolarGrid stroke="#e5e7eb" />
           <PolarAngleAxis 
             dataKey="metric" 
-            tick={{ fill: '#374151', fontSize: 12, fontWeight: 600 }}
+            tick={{ fill: '#374151', fontSize: 10, fontWeight: 600 }}
+            className="sm:text-xs"
           />
-          <PolarRadiusAxis angle={90} domain={[0, 'auto']} />
+          <PolarRadiusAxis angle={90} domain={[0, 'auto']} tick={{ fontSize: 10 }} />
           <Radar
             name={player1.web_name}
             dataKey={player1.web_name}
@@ -91,7 +92,7 @@ export function PlayerRadarChart({ players, className = '' }: PlayerRadarChartPr
             strokeWidth={2}
           />
           <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
+            wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }}
             iconType="circle"
           />
         </RadarChart>

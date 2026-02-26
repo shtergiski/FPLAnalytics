@@ -39,7 +39,7 @@ export function PlayerSlot({ player, position, onAddPlayer, onRemovePlayer }: Pl
     <div
       ref={(node) => drag(drop(node))}
       className={`
-        relative w-20 h-20 rounded-full border-2 border-dashed border-white/40
+        relative w-14 h-14 sm:w-20 sm:h-20 rounded-full border-2 border-dashed border-white/40
         flex items-center justify-center cursor-pointer
         transition-all hover:scale-110
         ${isDragging ? 'opacity-50' : ''}
@@ -50,17 +50,17 @@ export function PlayerSlot({ player, position, onAddPlayer, onRemovePlayer }: Pl
     >
       {player ? (
         <div className="text-center">
-          <div className="text-xs font-bold text-white truncate px-1">
+          <div className="text-[10px] sm:text-xs font-bold text-white truncate px-1">
             {player.web_name}
           </div>
-          <div className="text-[10px] text-white/80">
+          <div className="text-[8px] sm:text-[10px] text-white/80">
             £{(player.now_cost / 10).toFixed(1)}m
           </div>
         </div>
       ) : (
         <div className="text-center">
-          <Plus className="w-6 h-6 text-white/60 mx-auto mb-1" />
-          <div className="text-[10px] text-white/60">{position}</div>
+          <Plus className="w-4 h-4 sm:w-6 sm:h-6 text-white/60 mx-auto mb-0.5 sm:mb-1" />
+          <div className="text-[8px] sm:text-[10px] text-white/60">{position}</div>
         </div>
       )}
     </div>
@@ -91,16 +91,16 @@ export function TeamPitch({
   const [def, mid, fwd] = formation.split('-').map(Number);
 
   return (
-    <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl">
+    <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
-        <h2 className="text-2xl font-bold text-white">My Dream Team</h2>
-        <p className="text-white/80 text-sm">Gameweek {gameweek}</p>
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-4 sm:px-6 py-3 sm:py-4">
+        <h2 className="text-lg sm:text-2xl font-bold text-white">My Dream Team</h2>
+        <p className="text-white/80 text-xs sm:text-sm">Gameweek {gameweek}</p>
       </div>
 
       {/* Football Pitch */}
       <div 
-        className="relative h-[600px] bg-gradient-to-b from-green-500 to-green-600"
+        className="relative h-[500px] sm:h-[600px] bg-gradient-to-b from-green-500 to-green-600"
         style={{
           backgroundImage: `
             repeating-linear-gradient(0deg, transparent, transparent 50px, rgba(255,255,255,0.05) 50px, rgba(255,255,255,0.05) 51px),
@@ -109,22 +109,22 @@ export function TeamPitch({
         }}
       >
         {/* Center Circle */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-2 border-white/30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 sm:w-32 sm:h-32 rounded-full border-2 border-white/30" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white/40" />
 
         {/* Penalty Areas */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-64 h-20 border-2 border-white/30 border-b-0" />
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-64 h-20 border-2 border-white/30 border-t-0" />
+        <div className="absolute top-6 sm:top-8 left-1/2 -translate-x-1/2 w-48 sm:w-64 h-16 sm:h-20 border-2 border-white/30 border-b-0" />
+        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-48 sm:w-64 h-16 sm:h-20 border-2 border-white/30 border-t-0" />
 
         {/* Goal Areas */}
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-40 h-12 border-2 border-white/30 border-b-0" />
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-40 h-12 border-2 border-white/30 border-t-0" />
+        <div className="absolute top-6 sm:top-8 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-10 sm:h-12 border-2 border-white/30 border-b-0" />
+        <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 w-32 sm:w-40 h-10 sm:h-12 border-2 border-white/30 border-t-0" />
 
         {/* Players Layout */}
-        <div className="absolute inset-0 flex flex-col justify-between p-8">
+        <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-8">
           
           {/* Forwards */}
-          <div className="flex justify-center gap-8 pt-4">
+          <div className="flex justify-center gap-3 sm:gap-8 pt-2 sm:pt-4">
             {Array.from({ length: fwd }).map((_, i) => (
               <PlayerSlot
                 key={`fwd-${i}`}
@@ -137,7 +137,7 @@ export function TeamPitch({
           </div>
 
           {/* Midfielders */}
-          <div className="flex justify-center gap-6">
+          <div className="flex justify-center gap-2 sm:gap-6">
             {Array.from({ length: mid }).map((_, i) => (
               <PlayerSlot
                 key={`mid-${i}`}
@@ -150,7 +150,7 @@ export function TeamPitch({
           </div>
 
           {/* Defenders */}
-          <div className="flex justify-center gap-6">
+          <div className="flex justify-center gap-2 sm:gap-6">
             {Array.from({ length: def }).map((_, i) => (
               <PlayerSlot
                 key={`def-${i}`}
@@ -163,7 +163,7 @@ export function TeamPitch({
           </div>
 
           {/* Goalkeeper */}
-          <div className="flex justify-center pb-4">
+          <div className="flex justify-center pb-2 sm:pb-4">
             <PlayerSlot
               player={goalkeepers[0]}
               position="GK"
@@ -174,17 +174,17 @@ export function TeamPitch({
         </div>
 
         {/* Watermark */}
-        <div className="absolute bottom-4 right-4 text-white/40 text-sm font-semibold">
+        <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 text-white/40 text-xs sm:text-sm font-semibold">
           @FPL_Dave_
         </div>
       </div>
 
       {/* Substitutes Section */}
-      <div className="bg-gray-900 px-6 py-4">
-        <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wide">
+      <div className="bg-gray-900 px-4 sm:px-6 py-3 sm:py-4">
+        <h3 className="text-xs sm:text-sm font-bold text-white mb-3 uppercase tracking-wide">
           Substitutes
         </h3>
-        <div className="flex gap-4">
+        <div className="flex gap-2 sm:gap-4 overflow-x-auto">
           {Array.from({ length: 4 }).map((_, i) => (
             <PlayerSlot
               key={`sub-${i}`}

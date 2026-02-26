@@ -99,20 +99,20 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
   const form = parseFloat(player.form);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Image Upload Section */}
-      <Card className="p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
-        <div className="flex items-center justify-between mb-4">
+      <Card className="p-4 sm:p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Player Image</h3>
-            <p className="text-sm text-gray-600">Upload a custom player image (optional)</p>
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">Player Image</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Upload a custom player image (optional)</p>
           </div>
           {playerImage && (
             <Button
               variant="outline"
               size="sm"
               onClick={removeImage}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto"
             >
               <X className="w-4 h-4 mr-2" />
               Remove
@@ -134,9 +134,9 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
               htmlFor="player-image-upload"
               className="flex-1 cursor-pointer"
             >
-              <div className="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-500 hover:bg-purple-50/50 transition-all">
-                <Upload className="w-12 h-12 text-purple-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-gray-700 mb-1">
+              <div className="border-2 border-dashed border-purple-300 rounded-lg p-6 sm:p-8 text-center hover:border-purple-500 hover:bg-purple-50/50 transition-all">
+                <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-purple-400 mx-auto mb-3" />
+                <p className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Click to upload player image
                 </p>
                 <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
@@ -146,10 +146,10 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
         ) : (
           <div className="space-y-4">
             {/* Image Preview with Positioning */}
-            <div className="flex gap-6 items-start">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start">
               {/* Preview Circle */}
               <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-purple-300 shadow-lg">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-purple-300 shadow-lg">
                   <img
                     src={playerImage}
                     alt="Player preview"
@@ -163,10 +163,10 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
               </div>
 
               {/* Position Controls */}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 w-full space-y-3 sm:space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <Move className="w-4 h-4 text-purple-600" />
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <Move className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
                     Horizontal Position
                   </label>
                   <input
@@ -180,8 +180,8 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <Move className="w-4 h-4 text-purple-600 rotate-90" />
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <Move className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 rotate-90" />
                     Vertical Position
                   </label>
                   <input
@@ -195,18 +195,19 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <ZoomIn className="w-4 h-4 text-purple-600" />
+                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
                     Zoom ({imageZoom}%)
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setImageZoom(Math.max(50, imageZoom - 10))}
                       disabled={imageZoom <= 50}
+                      className="p-2"
                     >
-                      <ZoomOut className="w-4 h-4" />
+                      <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     <input
                       type="range"
@@ -221,8 +222,9 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
                       size="sm"
                       onClick={() => setImageZoom(Math.min(200, imageZoom + 10))}
                       disabled={imageZoom >= 200}
+                      className="p-2"
                     >
-                      <ZoomIn className="w-4 h-4" />
+                      <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 </div>
@@ -236,7 +238,7 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
                 className="flex-1 cursor-pointer"
               >
                 <div className="border-2 border-purple-300 rounded-lg p-3 text-center hover:border-purple-500 hover:bg-purple-50 transition-all">
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700">
                     Click to change image
                   </p>
                 </div>
@@ -247,18 +249,18 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
       </Card>
 
       {/* Exportable Card */}
-      <div className="flex justify-center overflow-x-auto">
+      <div className="flex justify-center overflow-x-auto pb-4">
         <div 
           ref={cardRef} 
           className="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-600 rounded-2xl shadow-2xl inline-block"
-          style={{ padding: '48px', minWidth: '550px', maxWidth: '700px', width: 'fit-content' }}
+          style={{ padding: '32px', minWidth: '320px', maxWidth: '700px', width: 'fit-content' }}
         >
           {/* Header with Player Image */}
-          <div className="flex items-start gap-6 mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6 sm:mb-8">
             {/* Player Image Circle */}
             <div className="flex-shrink-0">
               {playerImage ? (
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-xl">
                   <img
                     src={playerImage}
                     alt={player.web_name}
@@ -270,65 +272,65 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
                   />
                 </div>
               ) : (
-                <div className={`w-32 h-32 rounded-full ${positionStyle.bg} border-4 border-white shadow-xl flex items-center justify-center`}>
-                  <ImageIcon className="w-16 h-16 text-white/50" />
+                <div className={`w-24 h-24 sm:w-32 sm:h-32 rounded-full ${positionStyle.bg} border-4 border-white shadow-xl flex items-center justify-center`}>
+                  <ImageIcon className="w-12 h-12 sm:w-16 sm:h-16 text-white/50" />
                 </div>
               )}
             </div>
 
             {/* Player Info */}
-            <div className="flex-1 min-w-0">
-              <div className={`inline-flex items-center gap-2 ${positionStyle.bg} ${positionStyle.text} px-4 py-1.5 rounded-full text-sm font-bold mb-3`}>
+            <div className="flex-1 min-w-0 text-center sm:text-left">
+              <div className={`inline-flex items-center gap-2 ${positionStyle.bg} ${positionStyle.text} px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold mb-2 sm:mb-3`}>
                 {positionStyle.name}
               </div>
-              <h2 className="text-4xl font-black text-white mb-2 drop-shadow-lg truncate">
+              <h2 className="text-2xl sm:text-4xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg truncate">
                 {player.web_name}
               </h2>
-              <div className="text-purple-100 text-lg font-medium">
+              <div className="text-purple-100 text-sm sm:text-lg font-medium">
                 {player.team_name}
               </div>
             </div>
 
             {/* Price */}
-            <div className="text-right flex-shrink-0">
-              <div className="text-5xl font-black text-white">
+            <div className="text-center sm:text-right flex-shrink-0">
+              <div className="text-3xl sm:text-5xl font-black text-white">
                 £{(player.now_cost / 10).toFixed(1)}
               </div>
             </div>
           </div>
 
           {/* Stats Grid - 3 columns */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-5 text-center shadow-lg">
-              <div className="text-4xl font-black text-purple-600">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-white rounded-xl p-3 sm:p-5 text-center shadow-lg">
+              <div className="text-2xl sm:text-4xl font-black text-purple-600">
                 {player.selected_by_percent}%
               </div>
-              <div className="text-gray-600 text-sm font-medium mt-1">Ownership</div>
+              <div className="text-gray-600 text-xs sm:text-sm font-medium mt-1">Ownership</div>
             </div>
-            <div className="bg-white rounded-xl p-5 text-center shadow-lg">
-              <div className="text-4xl font-black text-purple-600">{player.form}</div>
-              <div className="text-gray-600 text-sm font-medium mt-1">Form</div>
+            <div className="bg-white rounded-xl p-3 sm:p-5 text-center shadow-lg">
+              <div className="text-2xl sm:text-4xl font-black text-purple-600">{player.form}</div>
+              <div className="text-gray-600 text-xs sm:text-sm font-medium mt-1">Form</div>
             </div>
-            <div className="bg-white rounded-xl p-5 text-center shadow-lg">
-              <div className="text-4xl font-black text-purple-600">
+            <div className="bg-white rounded-xl p-3 sm:p-5 text-center shadow-lg">
+              <div className="text-2xl sm:text-4xl font-black text-purple-600">
                 {parseFloat(player.points_per_game).toFixed(1)}
               </div>
-              <div className="text-gray-600 text-sm font-medium mt-1">PPG</div>
+              <div className="text-gray-600 text-xs sm:text-sm font-medium mt-1">PPG</div>
             </div>
           </div>
 
           {/* Total Points */}
-          <div className="text-center mb-6">
-            <div className="text-white text-6xl font-black drop-shadow-lg">
+          <div className="text-center mb-4 sm:mb-6">
+            <div className="text-white text-4xl sm:text-6xl font-black drop-shadow-lg">
               {player.total_points}
             </div>
-            <div className="text-purple-200 text-sm font-medium mt-1">Total Points</div>
+            <div className="text-purple-200 text-xs sm:text-sm font-medium mt-1">Total Points</div>
           </div>
 
           {/* Fixtures Strip - Official FPL Colors */}
           {fixtures && fixtures.length > 0 && (
-            <div className="mb-6">
-              <div className="flex gap-1 h-4 rounded-full overflow-hidden shadow-lg">
+            <div className="mb-4 sm:mb-6">
+              <div className="flex gap-0.5 sm:gap-1 h-3 sm:h-4 rounded-full overflow-hidden shadow-lg">
                 {fixtures.slice(0, 5).map((fixture, index) => {
                   // Official FPL FDR Colors
                   const difficultyColors = [
@@ -350,7 +352,7 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
               <div className="flex justify-between mt-2 text-white/60 text-xs">
                 {fixtures.slice(0, 5).map((fixture, index) => (
                   <div key={index} className="text-center flex-1">
-                    <div className="font-semibold">{fixture.opponent}</div>
+                    <div className="font-semibold truncate px-0.5">{fixture.opponent}</div>
                     <div>{fixture.isHome ? 'H' : 'A'}</div>
                   </div>
                 ))}
@@ -359,35 +361,35 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
           )}
 
           {/* Footer */}
-          <div className="text-center text-white/70 text-sm font-medium mt-6">
+          <div className="text-center text-white/70 text-xs sm:text-sm font-medium mt-4 sm:mt-6">
             @FPL_Dave_ • FPL Analytics
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <Button 
           onClick={() => exportAsImage('png')}
-          className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-lg py-6"
+          className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-base sm:text-lg py-4 sm:py-6"
         >
-          <Download className="w-5 h-5 mr-2" />
+          <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           Download PNG
         </Button>
         <Button 
           onClick={() => exportAsImage('jpeg')}
           variant="outline"
-          className="flex-1 text-lg py-6"
+          className="flex-1 text-base sm:text-lg py-4 sm:py-6"
         >
-          <Download className="w-5 h-5 mr-2" />
+          <Download className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           Download JPG
         </Button>
         <Button 
           onClick={shareCard}
           variant="outline"
-          className="flex-1 text-lg py-6"
+          className="flex-1 text-base sm:text-lg py-4 sm:py-6"
         >
-          <Share2 className="w-5 h-5 mr-2" />
+          <Share2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           Share
         </Button>
       </div>

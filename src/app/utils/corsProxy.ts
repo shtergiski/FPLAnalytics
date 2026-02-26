@@ -18,11 +18,12 @@ async function fetchProxy(url: string): Promise<Response> {
     console.log(`ℹ️ Direct fetch blocked (expected):`, error.message);
   }
 
-  // Multiple proxies for better reliability
+  // Multiple proxies for better reliability - ordered by reliability
   const proxies = [
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    `https://thingproxy.freeboard.io/fetch/${url}`,
     `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    `https://cors-anywhere.herokuapp.com/${url}`,
+    `https://thingproxy.freeboard.io/fetch/${url}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   ];
   
@@ -30,14 +31,14 @@ async function fetchProxy(url: string): Promise<Response> {
   
   for (let i = 0; i < proxies.length; i++) {
     const proxyUrl = proxies[i];
-    const proxyName = i === 0 ? 'codetabs.com' : i === 1 ? 'thingproxy' : i === 2 ? 'corsproxy.io' : 'allorigins.win';
+    const proxyName = i === 0 ? 'corsproxy.io' : i === 1 ? 'codetabs.com' : i === 2 ? 'cors-anywhere' : i === 3 ? 'thingproxy' : 'allorigins.win';
     
     try {
       console.log(`📡 Trying proxy ${i + 1}/${proxies.length}: ${proxyName}`);
       
-      // Create timeout promise
+      // Create timeout promise (reduced to 10s for faster failover)
       const timeoutPromise = new Promise<Response>((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 15000);
+        setTimeout(() => reject(new Error('Timeout')), 10000);
       });
       
       // Create fetch promise

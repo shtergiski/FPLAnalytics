@@ -88,62 +88,62 @@ export function PriceChangesTracker({ players }: PriceChangesTrackerProps) {
   const positionNames = ['All', 'GK', 'DEF', 'MID', 'FWD'];
 
   const PriceChangeRow = ({ player, showTransfers = false }: { player: typeof priceData[0]; showTransfers?: boolean | string }) => (
-    <div className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b last:border-b-0">
-      <div className="flex items-center gap-4 flex-1">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white ${
+    <div className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 transition-colors border-b last:border-b-0">
+      <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-white text-xs sm:text-base ${ 
           player.element_type === 1 ? 'bg-yellow-500' :
           player.element_type === 2 ? 'bg-green-500' :
           player.element_type === 3 ? 'bg-blue-500' : 'bg-red-500'
         }`}>
           {player.web_name.substring(0, 2).toUpperCase()}
         </div>
-        <div className="flex-1">
-          <div className="font-semibold text-gray-900">{player.web_name}</div>
-          <div className="text-sm text-gray-600">{player.team_name}</div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm sm:text-base text-gray-900 truncate">{player.web_name}</div>
+          <div className="text-xs sm:text-sm text-gray-600 truncate">{player.team_name}</div>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
         {showTransfers ? (
-          <div className="text-center min-w-[80px]">
-            <div className="text-sm text-gray-600 mb-1">Transfers</div>
-            <div className="font-bold text-lg text-purple-600">
+          <div className="text-center min-w-[60px] sm:min-w-[80px]">
+            <div className="text-[10px] sm:text-sm text-gray-600 mb-1 hidden sm:block">Transfers</div>
+            <div className="font-bold text-sm sm:text-lg text-purple-600">
               {showTransfers === 'in' 
                 ? (player.transfers_in_event?.toLocaleString() || '0')
                 : (player.transfers_out_event?.toLocaleString() || '0')}
             </div>
           </div>
         ) : (
-          <div className="text-center min-w-[100px]">
-            <div className="text-sm text-gray-600 mb-1">Change</div>
-            <div className={`font-bold text-lg flex items-center justify-center gap-1 ${
+          <div className="text-center min-w-[70px] sm:min-w-[100px]">
+            <div className="text-[10px] sm:text-sm text-gray-600 mb-1 hidden sm:block">Change</div>
+            <div className={`font-bold text-sm sm:text-lg flex items-center justify-center gap-0.5 sm:gap-1 ${
               player.changeValue > 0 ? 'text-green-600' : 
               player.changeValue < 0 ? 'text-red-600' : 'text-gray-600'
             }`}>
-              {player.changeValue > 0 ? <TrendingUp className="w-4 h-4" /> : 
-               player.changeValue < 0 ? <TrendingDown className="w-4 h-4" /> : null}
+              {player.changeValue > 0 ? <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" /> : 
+               player.changeValue < 0 ? <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" /> : null}
               {player.changeValue > 0 ? '+' : ''}{player.changeValue.toFixed(1)}m
             </div>
           </div>
         )}
 
-        <div className="text-center min-w-[80px]">
-          <div className="text-sm text-gray-600 mb-1">Price</div>
-          <div className="font-bold text-lg text-gray-900">
+        <div className="text-center min-w-[50px] sm:min-w-[80px]">
+          <div className="text-[10px] sm:text-sm text-gray-600 mb-1 hidden sm:block">Price</div>
+          <div className="font-bold text-sm sm:text-lg text-gray-900">
             £{(player.now_cost / 10).toFixed(1)}m
           </div>
         </div>
 
-        <div className="text-center min-w-[80px]">
-          <div className="text-sm text-gray-600 mb-1">Owned</div>
-          <div className="font-bold text-lg text-gray-900">
+        <div className="text-center min-w-[50px] sm:min-w-[80px] hidden md:block">
+          <div className="text-[10px] sm:text-sm text-gray-600 mb-1">Owned</div>
+          <div className="font-bold text-sm sm:text-lg text-gray-900">
             {player.selected_by_percent}%
           </div>
         </div>
 
-        <div className="text-center min-w-[70px]">
-          <div className="text-sm text-gray-600 mb-1">Form</div>
-          <div className="font-bold text-lg text-cyan-600">
+        <div className="text-center min-w-[50px] sm:min-w-[70px] hidden lg:block">
+          <div className="text-[10px] sm:text-sm text-gray-600 mb-1">Form</div>
+          <div className="font-bold text-sm sm:text-lg text-cyan-600">
             {player.form}
           </div>
         </div>

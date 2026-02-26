@@ -37,17 +37,20 @@ export function FDRHeatmap({ fixtures, className = '' }: FDRHeatmapProps) {
   }
 
   return (
-    <div className={`flex gap-2 ${className}`}>
+    <div className={`flex gap-1 sm:gap-2 ${className}`}>
       {displayFixtures.slice(0, 5).map((fixture, index) => (
         <div
           key={index}
-          className={`flex-1 ${getDifficultyColor(fixture.difficulty)} rounded-xl py-4 px-3 text-center transition-transform hover:scale-105 cursor-pointer`}
+          className={`flex-1 ${getDifficultyColor(fixture.difficulty)} rounded-lg sm:rounded-xl py-2 sm:py-4 px-1 sm:px-3 text-center transition-transform hover:scale-105 cursor-pointer`}
         >
-          <div className="text-xs font-medium text-gray-700 mb-1">
-            Gameweek {fixture.gameweek || '-'}
+          <div className="text-[10px] sm:text-xs font-medium text-gray-700 mb-0.5 sm:mb-1">
+            GW {fixture.gameweek || '-'}
           </div>
-          <div className="font-bold text-sm text-gray-900">
-            {fixture.opponent} ({fixture.isHome ? 'H' : 'A'})
+          <div className="font-bold text-xs sm:text-sm text-gray-900 truncate px-0.5">
+            {fixture.opponent}
+          </div>
+          <div className="text-[10px] sm:text-xs text-gray-700 mt-0.5">
+            ({fixture.isHome ? 'H' : 'A'})
           </div>
         </div>
       ))}

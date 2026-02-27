@@ -134,9 +134,13 @@
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
     }
-    
+
     /* Ensure minimum touch target size of 44x44px on mobile */
-    button, a, input, select, textarea {
+    button,
+    a,
+    input,
+    select,
+    textarea {
       min-height: 44px;
       touch-action: manipulation;
     }
@@ -146,6 +150,14 @@
   .touch-manipulation {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Football pitch background - Using custom pitch image */
+  .bg-pitch {
+    background-image: url('../assets/pitch-graphic.png');
+    background-size: cover;
+    background-position: top center;
+    background-repeat: no-repeat;
   }
 
   /**

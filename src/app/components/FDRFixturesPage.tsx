@@ -6,7 +6,7 @@ import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, Star } from 'lucide-react';
 // Official FPL FDR Colors
 const getFDRColor = (difficulty: number) => {
   switch(difficulty) {
-    case 1: return 'bg-[#01FC7C]'; // Dark green (easiest)
+    case 1: return 'bg-[#375523]'; // Dark green (easiest) - Updated color
     case 2: return 'bg-[#00FF87]'; // Light green
     case 3: return 'bg-gray-400';  // Gray (neutral)
     case 4: return 'bg-[#FF1751]'; // Pink/red
@@ -17,7 +17,7 @@ const getFDRColor = (difficulty: number) => {
 
 const getFDRTextColor = (difficulty: number) => {
   switch(difficulty) {
-    case 1: return 'text-gray-900';
+    case 1: return 'text-white'; // White text for darker green
     case 2: return 'text-gray-900';
     case 3: return 'text-white';
     case 4: return 'text-white';
@@ -122,6 +122,9 @@ export function FDRFixturesPage() {
   const maxFixtures = Math.max(...(teamFixturesData?.map(t => t.fixtures.length) || [5]));
   const fixtureCount = Math.min(maxFixtures, 5); // Max 5 columns
 
+  // Get actual gameweek numbers from the first team's fixtures
+  const gameweekHeaders = teamFixturesData?.[0]?.fixtures.map(f => f.gameweek) || [];
+
   const SortIcon = ({ column }: { column: string }) => {
     if (sortColumn !== column) return <ArrowUpDown className="w-4 h-4 ml-1 opacity-30" />;
     return sortDirection === 'asc' 
@@ -182,7 +185,7 @@ export function FDRFixturesPage() {
                   onClick={() => handleSort(`gw${index}`)}
                 >
                   <div className="flex items-center justify-center">
-                    GW {index + 1}
+                    GW {gameweekHeaders[index] || (index + 1)}
                     <SortIcon column={`gw${index}`} />
                   </div>
                 </th>

@@ -9,6 +9,7 @@ import { useFPLStore } from '../../store/fpl-store';
 import { ImagePositionControls } from '../ImagePositionControls';
 import { TeamCombobox } from '../ui/team-combobox';
 import { Loading } from '../ui/loading';
+import { convertImageToBase64 } from '../../utils/imageUtils';
 
 interface FDRFixtureBuilderProps {
   players: Player[];
@@ -85,14 +86,53 @@ export function FDRFixtureBuilder({ players }: FDRFixtureBuilderProps) {
 
   const exportAsImage = async () => {
     if (!cardRef.current) return;
+    
     try {
-      const dataUrl = await toPng(cardRef.current, { quality: 1.0, pixelRatio: 2 });
+      // Convert external images to base64 to avoid CORS issues
+      const imgElements = cardRef.current.querySelectorAll('img');
+      const originalSrcs: string[] = [];
+      
+      // Store original sources and convert to base64
+      for (let i = 0; i < imgElements.length; i++) {
+        const img = imgElements[i];
+        originalSrcs.push(img.src);
+        
+        // Only convert if it's an external URL (not already base64)
+        if (!img.src.startsWith('data:')) {
+          try {
+            const base64 = await convertImageToBase64(img.src);
+            if (base64) {
+              img.src = base64;
+            }
+          } catch (err) {
+            console.warn('Failed to convert image:', err);
+          }
+        }
+      }
+      
+      // Wait a bit for images to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Export the card
+      const dataUrl = await toPng(cardRef.current, { 
+        quality: 1.0, 
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      
+      // Restore original sources
+      for (let i = 0; i < imgElements.length; i++) {
+        imgElements[i].src = originalSrcs[i];
+      }
+      
+      // Download the image
       const link = document.createElement('a');
       link.download = `${selectedTeam?.name || 'Team'}_Fixtures_GW${gameweekStart}.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Failed to export:', error);
+      alert('Failed to export image. Please try again.');
     }
   };
 
@@ -217,57 +257,58 @@ export function FDRFixtureBuilder({ players }: FDRFixtureBuilderProps) {
         </div>
       </Card>
 
-      {/* Preview Card */}
-      <div className="flex justify-center overflow-x-auto">
-        <div
-          ref={cardRef}
-          className="bg-gradient-to-br from-cyan-600 via-blue-500 to-purple-600 rounded-2xl shadow-2xl inline-block"
-          style={{ padding: '48px', minWidth: '750px', maxWidth: '900px', width: 'fit-content' }}
-        >
-          {/* Header */}
-          <div className="text-center mb-8">
-            {playerImage && (
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                <img 
-                  src={playerImage} 
-                  alt="Team badge" 
-                  className="w-full h-full object-cover"
-                  style={{ transform: `translate(${imagePosition.x}%, ${imagePosition.y}%) scale(${imagePosition.scale / 100})` }}
-                />
-              </div>
-            )}
-            <div className="text-5xl font-black text-white mb-2">{selectedTeam?.name || 'Team'}</div>
-            <div className="text-2xl text-cyan-100 font-medium">Fixture Difficulty</div>
-          </div>
+      {/* Preview Card - SCALED FOR MOBILE */}
+      <div className="flex justify-start overflow-hidden">
+        <div className="w-[1080px] h-[1080px] scale-[0.35] md:scale-[0.50] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[680px] md:-mb-[530px] xl:-mb-[400px] -mr-[702px] md:-mr-[540px] xl:-mr-[345px]">
+          <div
+            ref={cardRef}
+            className="bg-gradient-to-br from-cyan-600 via-blue-500 to-purple-600 rounded-3xl shadow-2xl flex flex-col items-center justify-around p-16 w-[1080px] h-[1080px]"
+          >
+            {/* Header */}
+            <div className="text-center">
+              {playerImage && (
+                <div className="w-40 h-40 mx-auto mb-6 rounded-full overflow-hidden border-8 border-white shadow-lg">
+                  <img 
+                    src={playerImage} 
+                    alt="Team badge" 
+                    className="w-full h-full object-cover"
+                    style={{ transform: `translate(${imagePosition.x}%, ${imagePosition.y}%) scale(${imagePosition.scale / 100})` }}
+                  />
+                </div>
+              )}
+              <div className="text-7xl font-black text-white mb-3">{selectedTeam?.name || 'Team'}</div>
+              <div className="text-4xl text-cyan-100 font-medium">Fixture Difficulty</div>
+            </div>
 
-          {/* Fixtures Grid */}
-          <div className="space-y-4">
-            {teamFixtures.map((fixture, idx) => {
-              const colorClass = difficultyColors[fixture.difficulty - 1] || difficultyColors[2];
-              return (
-                <div key={idx} className="bg-white/20 backdrop-blur-sm rounded-xl p-5 border border-white/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="text-white/80 text-sm font-bold bg-white/20 px-3 py-1 rounded-lg">
-                        GW {fixture.gw}
+            {/* Fixtures Grid */}
+            <div className="space-y-6 w-full max-w-4xl">
+              {teamFixtures.map((fixture, idx) => {
+                const colorClass = difficultyColors[fixture.difficulty - 1] || difficultyColors[2];
+                return (
+                  <div key={idx} className="bg-white/20 backdrop-blur-sm rounded-2xl p-8 border-4 border-white/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-6 flex-1">
+                        <div className="text-white/90 text-xl font-bold bg-white/30 px-5 py-2 rounded-xl">
+                          GW {fixture.gw}
+                        </div>
+                        <div className="flex items-center gap-5 flex-1">
+                          <div className="text-4xl font-black text-white">{fixture.home ? 'vs' : '@'}</div>
+                          <div className="text-5xl font-black text-white">{fixture.opponent} ({fixture.home ? 'H' : 'A'})</div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="text-2xl font-black text-white">{fixture.home ? 'vs' : '@'}</div>
-                        <div className="text-3xl font-black text-white">{fixture.opponent} ({fixture.home ? 'H' : 'A'})</div>
+                      <div className={`${colorClass.bg} ${colorClass.text} px-12 py-6 rounded-2xl font-black text-4xl shadow-lg`}>
+                        FDR {fixture.difficulty}
                       </div>
-                    </div>
-                    <div className={`${colorClass.bg} ${colorClass.text} px-8 py-4 rounded-xl font-black text-2xl shadow-lg`}>
-                      FDR {fixture.difficulty}
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-          {/* Footer */}
-          <div className="text-center text-white/70 text-sm font-medium mt-8">
-            @FPL_Dave_ • FPL Analytics
+            {/* Footer */}
+            <div className="text-center text-white/70 text-2xl font-medium">
+              @FPL_Dave_ • FPL Analytics
+            </div>
           </div>
         </div>
       </div>

@@ -75,7 +75,7 @@ export function DashboardLayout({ children, currentPage = 'Dashboard', onNavigat
         <div className="p-4 sm:p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-              <img src={xLogo} alt="FPL Dave" className="w-10 h-10 rounded-full" />
+              <span className="text-white font-bold">FD</span>
             </div>
             <div>
               <div className="font-bold text-base sm:text-lg">FPL Dave</div>

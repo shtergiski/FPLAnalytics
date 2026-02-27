@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -28,6 +28,7 @@ interface CreatorHubProps {
 
 export function CreatorHub({ players }: CreatorHubProps) {
   const [activeBuilder, setActiveBuilder] = useState('player-cards');
+  const builderContentRef = useRef<HTMLDivElement>(null);
 
   const builders = [
     {
@@ -88,6 +89,20 @@ export function CreatorHub({ players }: CreatorHubProps) {
     },
   ];
 
+  const handleBuilderSelect = (builderId: string) => {
+    setActiveBuilder(builderId);
+    
+    // Scroll to builder content on mobile
+    if (window.innerWidth < 1024 && builderContentRef.current) {
+      setTimeout(() => {
+        builderContentRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 100);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -109,25 +124,25 @@ export function CreatorHub({ players }: CreatorHubProps) {
           return (
             <Card
               key={builder.id}
-              className={`p-6 cursor-pointer transition-all hover:scale-105 ${
+              className={`p-6 cursor-pointer transition-all hover:scale-105 min-h-[200px] flex flex-col ${
                 isActive 
                   ? 'ring-2 ring-purple-500 shadow-lg' 
                   : 'hover:shadow-lg'
               }`}
-              onClick={() => setActiveBuilder(builder.id)}
+              onClick={() => handleBuilderSelect(builder.id)}
             >
-              <div className={`w-12 h-12 bg-gradient-to-br ${builder.color} rounded-xl flex items-center justify-center mb-4`}>
+              <div className={`w-12 h-12 bg-gradient-to-br ${builder.color} rounded-xl flex items-center justify-center mb-4 flex-shrink-0`}>
                 <Icon className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-1">{builder.name}</h3>
-              <p className="text-sm text-gray-600">{builder.description}</p>
+              <h3 className="font-bold text-gray-900 mb-2">{builder.name}</h3>
+              <p className="text-sm text-gray-600 flex-grow leading-relaxed">{builder.description}</p>
             </Card>
           );
         })}
       </div>
 
       {/* Active Builder Content */}
-      <div className="min-h-[600px]">
+      <div className="min-h-[600px]" ref={builderContentRef}>
         {activeBuilder === 'player-cards' && <PlayerCardsGallery players={players} />}
         {activeBuilder === 'gameweek-review' && <GameweekReviewBuilder players={players} />}
         {activeBuilder === 'team-lineup' && <TeamLineupBuilderAdvanced players={players} />}

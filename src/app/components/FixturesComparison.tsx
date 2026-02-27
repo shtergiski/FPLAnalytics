@@ -6,6 +6,7 @@ import type { Player, PlayerFixture } from '../types/fpl';
 import { PlayerCombobox } from './ui/player-combobox';
 import { Loading } from './ui/loading';
 import { useFPLStore } from '../store/fpl-store';
+import { convertImageToBase64 } from '../utils/imageUtils';
 
 interface FixturesComparisonProps {
   players: Player[];

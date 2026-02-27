@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, ChangeEvent } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Download, Upload, Trophy, Medal, Award, X, Loader2, Search } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { corsProxyFetch } from '../../utils/corsProxy';
+import { convertImageToBase64 } from '../../utils/imageUtils';
 
 interface LeagueStanding {
   rank: string;
@@ -86,7 +87,7 @@ export function MiniLeagueBuilder() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -97,7 +98,7 @@ export function MiniLeagueBuilder() {
     }
   };
 
-  const handleManagerImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleManagerImageUpload = (index: number, e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -112,19 +113,54 @@ export function MiniLeagueBuilder() {
 
   const exportAsImage = async () => {
     if (!cardRef.current) return;
+    
     try {
+      // Convert external images to base64 to avoid CORS issues
+      const imgElements = cardRef.current.querySelectorAll('img');
+      const originalSrcs: string[] = [];
+      
+      // Store original sources and convert to base64
+      for (let i = 0; i < imgElements.length; i++) {
+        const img = imgElements[i];
+        originalSrcs.push(img.src);
+        
+        // Only convert if it's an external URL (not already base64)
+        if (!img.src.startsWith('data:')) {
+          try {
+            const base64 = await convertImageToBase64(img.src);
+            if (base64) {
+              img.src = base64;
+            }
+          } catch (err) {
+            console.warn('Failed to convert image:', err);
+          }
+        }
+      }
+      
+      // Wait a bit for images to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Export the card
       const dataUrl = await toPng(cardRef.current, { 
         quality: 1.0, 
         pixelRatio: 2,
         backgroundColor: '#ffffff',
-        cacheBust: true
+        cacheBust: true,
       });
+      
+      // Restore original sources
+      for (let i = 0; i < imgElements.length; i++) {
+        imgElements[i].src = originalSrcs[i];
+      }
+      
+      // Download the image
       const link = document.createElement('a');
       link.download = `${leagueName}_GW${gameweek}_Standings.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Failed to export:', error);
+      alert('Failed to export image. Please try again.');
     }
   };
 
@@ -226,71 +262,73 @@ export function MiniLeagueBuilder() {
         </div>
       </Card>
 
-      {/* Preview Card */}
-      <div className="flex justify-center">
-        <div
-          ref={cardRef}
-          className="bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 rounded-2xl shadow-2xl inline-block"
-          style={{ padding: '48px', maxWidth: '1000px', width: 'fit-content' }}
-        >
-          {/* Header */}
-          <div className="text-center mb-8">
-            {leagueLogo && (
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white">
-                <img src={leagueLogo} alt="League logo" className="w-full h-full object-cover" />
+      {/* Preview Card - SCALED FOR MOBILE */}
+      <div className="flex justify-start overflow-hidden">
+        <div className="w-[1080px] h-[1080px] scale-[0.35] md:scale-[0.50] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[680px] md:-mb-[530px] xl:-mb-[400px] -mr-[702px] md:-mr-[540px] xl:-mr-[345px]">
+          <div
+            ref={cardRef}
+            className="w-[1080px] h-[1080px] bg-gradient-to-br from-yellow-500 via-orange-500 to-red-600 rounded-[40px] shadow-2xl flex flex-col justify-between"
+            style={{ padding: '80px' }}
+          >
+            {/* Header */}
+            <div className="text-center mb-8">
+              {leagueLogo && (
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden border-4 border-white shadow-lg bg-white">
+                  <img src={leagueLogo} alt="League logo" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="text-5xl font-black text-white mb-2">{leagueName}</div>
+              <div className="text-2xl text-yellow-100 font-medium">GW {gameweek} Standings</div>
+            </div>
+
+            {/* Standings Table */}
+            <div className="bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ minWidth: '850px' }}>
+              {/* Table Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 grid grid-cols-12 gap-4 text-white font-bold">
+                <div className="col-span-1 text-center">Rank</div>
+                <div className="col-span-6">Manager</div>
+                <div className="col-span-3 text-right">Total Points</div>
+                <div className="col-span-2 text-right">GW</div>
               </div>
-            )}
-            <div className="text-5xl font-black text-white mb-2">{leagueName}</div>
-            <div className="text-2xl text-yellow-100 font-medium">GW {gameweek} Standings</div>
-          </div>
 
-          {/* Standings Table */}
-          <div className="bg-white rounded-2xl overflow-hidden shadow-2xl" style={{ minWidth: '850px' }}>
-            {/* Table Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 grid grid-cols-12 gap-4 text-white font-bold">
-              <div className="col-span-1 text-center">Rank</div>
-              <div className="col-span-6">Manager</div>
-              <div className="col-span-3 text-right">Total Points</div>
-              <div className="col-span-2 text-right">GW</div>
+              {/* Standings Rows */}
+              <div className="divide-y divide-gray-200">
+                {standings.map((standing, idx) => {
+                  const isTop3 = parseInt(standing.rank) <= 3;
+                  return (
+                    <div
+                      key={idx}
+                      className={`px-6 py-4 grid grid-cols-12 gap-4 items-center ${
+                        isTop3 ? 'bg-yellow-50' : 'bg-white'
+                      } hover:bg-gray-50 transition-colors`}
+                    >
+                      <div className="col-span-1 flex justify-center">
+                        {getRankIcon(standing.rank)}
+                      </div>
+                      <div className="col-span-6 flex items-center gap-3">
+                        {standing.image && (
+                          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-400 shadow-lg">
+                            <img src={standing.image} alt={standing.name} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="font-bold text-gray-900 text-lg">{standing.name}</div>
+                      </div>
+                      <div className="col-span-3 text-right">
+                        <div className="text-2xl font-black text-purple-600">{standing.points}</div>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <div className="text-lg font-bold text-green-600">{standing.gw}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Standings Rows */}
-            <div className="divide-y divide-gray-200">
-              {standings.map((standing, idx) => {
-                const isTop3 = parseInt(standing.rank) <= 3;
-                return (
-                  <div
-                    key={idx}
-                    className={`px-6 py-4 grid grid-cols-12 gap-4 items-center ${
-                      isTop3 ? 'bg-yellow-50' : 'bg-white'
-                    } hover:bg-gray-50 transition-colors`}
-                  >
-                    <div className="col-span-1 flex justify-center">
-                      {getRankIcon(standing.rank)}
-                    </div>
-                    <div className="col-span-6 flex items-center gap-3">
-                      {standing.image && (
-                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-400 shadow-lg">
-                          <img src={standing.image} alt={standing.name} className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      <div className="font-bold text-gray-900 text-lg">{standing.name}</div>
-                    </div>
-                    <div className="col-span-3 text-right">
-                      <div className="text-2xl font-black text-purple-600">{standing.points}</div>
-                    </div>
-                    <div className="col-span-2 text-right">
-                      <div className="text-lg font-bold text-green-600">{standing.gw}</div>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Footer */}
+            <div className="text-center text-white/90 text-sm font-bold mt-6 bg-white/20 backdrop-blur-sm rounded-full py-2 px-4 inline-block mx-auto w-full">
+              @FPL_Dave_ • FPL Analytics
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center text-white/90 text-sm font-bold mt-6 bg-white/20 backdrop-blur-sm rounded-full py-2 px-4 inline-block mx-auto w-full">
-            @FPL_Dave_ • FPL Analytics
           </div>
         </div>
       </div>

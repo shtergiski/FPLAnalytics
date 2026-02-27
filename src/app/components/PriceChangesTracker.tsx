@@ -251,22 +251,26 @@ export function PriceChangesTracker({ players }: PriceChangesTrackerProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="risers" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="risers" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Price Rises
+        <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsTrigger value="risers" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Price Rises</span>
+            <span className="sm:hidden">Rises</span>
           </TabsTrigger>
-          <TabsTrigger value="fallers" className="flex items-center gap-2">
-            <TrendingDown className="w-4 h-4" />
-            Price Falls
+          <TabsTrigger value="fallers" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Price Falls</span>
+            <span className="sm:hidden">Falls</span>
           </TabsTrigger>
-          <TabsTrigger value="transfers-in" className="flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4" />
-            Transfers In
+          <TabsTrigger value="transfers-in" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Transfers In</span>
+            <span className="sm:hidden">In</span>
           </TabsTrigger>
-          <TabsTrigger value="transfers-out" className="flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4" />
-            Transfers Out
+          <TabsTrigger value="transfers-out" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 sm:py-3 text-xs sm:text-sm">
+            <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Transfers Out</span>
+            <span className="sm:hidden">Out</span>
           </TabsTrigger>
         </TabsList>
 

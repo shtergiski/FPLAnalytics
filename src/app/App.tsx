@@ -128,21 +128,28 @@ export default function App() {
     .sort((a, b) => b.transfers_out_event - a.transfers_out_event)
     .slice(0, 5);
     
-  // Interesting stat cards
-  const bestValuePlayer = players.length > 0 ? [...players]
+  // Interesting stat cards - Filter out injured/doubtful players
+  // chance_of_playing_next_round: null (100%), 75, 50, 25, 0
+  // We exclude players with chance < 75% (injured/doubtful)
+  const availablePlayers = players.filter(p => 
+    p.chance_of_playing_next_round === null || 
+    p.chance_of_playing_next_round >= 75
+  );
+  
+  const bestValuePlayer = availablePlayers.length > 0 ? [...availablePlayers]
     .filter(p => p.total_points > 0 && p.now_cost > 0)
     .map(p => ({ ...p, ppm: p.total_points / (p.now_cost / 10) }))
     .sort((a, b) => b.ppm - a.ppm)[0] : null;
     
-  const risingStarPlayer = players.length > 0 ? [...players]
+  const risingStarPlayer = availablePlayers.length > 0 ? [...availablePlayers]
     .filter(p => p.now_cost < 60 && parseFloat(p.form) > 0) // Under £6m
     .sort((a, b) => parseFloat(b.form) - parseFloat(a.form))[0] : null;
     
-  const bestDifferential = players.length > 0 ? [...players]
+  const bestDifferential = availablePlayers.length > 0 ? [...availablePlayers]
     .filter(p => parseFloat(p.selected_by_percent) < 10 && p.total_points > 50)
     .sort((a, b) => b.total_points - a.total_points)[0] : null;
     
-  const captainPick = players.length > 0 ? [...players]
+  const captainPick = availablePlayers.length > 0 ? [...availablePlayers]
     .filter(p => parseFloat(p.form) > 0)
     .sort((a, b) => (parseFloat(b.form) * b.total_points) - (parseFloat(a.form) * a.total_points))[0] : null;
   

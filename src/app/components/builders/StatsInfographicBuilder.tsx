@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -6,6 +6,7 @@ import { Download, Upload, Search } from 'lucide-react';
 import { Player } from '../../types/fpl';
 import { toPng } from 'html-to-image';
 import { ImagePositionControls } from '../ImagePositionControls';
+import { convertImageToBase64 } from '../../utils/imageUtils';
 
 interface StatsInfographicBuilderProps {
   players: Player[];
@@ -34,29 +35,62 @@ export function StatsInfographicBuilder({ players }: StatsInfographicBuilderProp
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setPlayerImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      convertImageToBase64(file).then(base64 => {
+        setPlayerImage(base64);
+      });
     }
   };
 
   const exportAsImage = async () => {
     if (!cardRef.current) return;
+    
     try {
+      // Convert external images to base64 to avoid CORS issues
+      const imgElements = cardRef.current.querySelectorAll('img');
+      const originalSrcs: string[] = [];
+      
+      // Store original sources and convert to base64
+      for (let i = 0; i < imgElements.length; i++) {
+        const img = imgElements[i];
+        originalSrcs.push(img.src);
+        
+        // Only convert if it's an external URL (not already base64)
+        if (!img.src.startsWith('data:')) {
+          try {
+            const base64 = await convertImageToBase64(img.src);
+            if (base64) {
+              img.src = base64;
+            }
+          } catch (err) {
+            console.warn('Failed to convert image:', err);
+          }
+        }
+      }
+      
+      // Wait a bit for images to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Export the card
       const dataUrl = await toPng(cardRef.current, { 
         quality: 1.0, 
         pixelRatio: 2,
         backgroundColor: '#ffffff',
-        cacheBust: true
+        cacheBust: true,
       });
+      
+      // Restore original sources
+      for (let i = 0; i < imgElements.length; i++) {
+        imgElements[i].src = originalSrcs[i];
+      }
+      
+      // Download the image
       const link = document.createElement('a');
       link.download = `${selectedPlayer?.web_name || 'Player'}_Stats_${season}.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Failed to export:', error);
+      alert('Failed to export image. Please try again.');
     }
   };
 
@@ -166,56 +200,58 @@ export function StatsInfographicBuilder({ players }: StatsInfographicBuilderProp
         )}
       </Card>
 
-      {/* Preview Card */}
-      <div className="flex justify-center overflow-x-auto">
-        <div
-          ref={cardRef}
-          className="bg-gradient-to-br from-pink-600 via-purple-500 to-indigo-600 rounded-2xl shadow-2xl inline-block"
-          style={{ padding: '48px', minWidth: '850px', maxWidth: '1000px', width: 'fit-content' }}
-        >
-          {/* Header with Player Image */}
-          <div className="flex items-center gap-6 mb-10">
-            {playerImage ? (
-              <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl flex-shrink-0">
-                <img 
-                  src={playerImage} 
-                  alt={selectedPlayer.web_name} 
-                  className="w-full h-full object-cover"
-                  style={{ transform: `translate(${imagePosition.x}%, ${imagePosition.y}%) scale(${imagePosition.scale / 100})` }}
-                />
+      {/* Preview Card - SCALED FOR MOBILE */}
+      <div className="flex justify-start overflow-hidden">
+        <div className="w-[1080px] h-[1080px] scale-[0.35] md:scale-[0.50] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[680px] md:-mb-[530px] xl:-mb-[400px] -mr-[702px] md:-mr-[540px] xl:-mr-[345px]">
+          <div
+            ref={cardRef}
+            className="w-[1080px] h-[1080px] bg-gradient-to-br from-pink-600 via-purple-500 to-indigo-600 rounded-[40px] shadow-2xl flex flex-col justify-between"
+            style={{ padding: '80px' }}
+          >
+            {/* Header with Player Image */}
+            <div className="flex items-center gap-6 mb-10">
+              {playerImage ? (
+                <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl flex-shrink-0">
+                  <img 
+                    src={playerImage} 
+                    alt={selectedPlayer.web_name} 
+                    className="w-full h-full object-cover"
+                    style={{ transform: `translate(${imagePosition.x}%, ${imagePosition.y}%) scale(${imagePosition.scale / 100})` }}
+                  />
+                </div>
+              ) : (
+                <div className="w-40 h-40 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white flex items-center justify-center flex-shrink-0">
+                  <span className="text-7xl">🌟</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-6xl font-black text-white mb-3 truncate">{selectedPlayer.web_name}</div>
+                <div className="text-2xl text-pink-100 font-medium">{selectedPlayer.team_name} • {season}</div>
+                <div className="text-3xl text-white font-black mt-2">£{(selectedPlayer.now_cost / 10).toFixed(1)}m</div>
               </div>
-            ) : (
-              <div className="w-40 h-40 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white flex items-center justify-center flex-shrink-0">
-                <span className="text-7xl">🌟</span>
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="text-6xl font-black text-white mb-3 truncate">{selectedPlayer.web_name}</div>
-              <div className="text-2xl text-pink-100 font-medium">{selectedPlayer.team_name} • {season}</div>
-              <div className="text-3xl text-white font-black mt-2">£{(selectedPlayer.now_cost / 10).toFixed(1)}m</div>
             </div>
-          </div>
 
-          {/* Stats Grid - 5 columns (2 rows) */}
-          <div className="grid grid-cols-5 gap-4 mb-8">
-            {stats.map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-2xl p-5 text-center shadow-xl transform hover:scale-105 transition-transform">
-                <div className="text-4xl mb-2">{stat.icon}</div>
-                <div className="text-4xl font-black text-gray-900 mb-1">{stat.value}</div>
-                <div className="text-sm font-bold text-gray-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
+            {/* Stats Grid - 5 columns (2 rows) */}
+            <div className="grid grid-cols-5 gap-4 mb-8">
+              {stats.map((stat, idx) => (
+                <div key={idx} className="bg-white rounded-2xl p-5 text-center shadow-xl transform hover:scale-105 transition-transform">
+                  <div className="text-4xl mb-2">{stat.icon}</div>
+                  <div className="text-4xl font-black text-gray-900 mb-1">{stat.value}</div>
+                  <div className="text-sm font-bold text-gray-600">{stat.label}</div>
+                </div>
+              ))}
+            </div>
 
-          {/* Total Points Highlight */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-white/40">
-            <div className="text-white/90 text-lg font-medium mb-2">Total Points</div>
-            <div className="text-white text-7xl font-black drop-shadow-lg">{selectedPlayer.total_points}</div>
-          </div>
+            {/* Total Points Highlight */}
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border-2 border-white/40">
+              <div className="text-white/90 text-lg font-medium mb-2">Total Points</div>
+              <div className="text-white text-7xl font-black drop-shadow-lg">{selectedPlayer.total_points}</div>
+            </div>
 
-          {/* Footer */}
-          <div className="text-center text-white/80 text-sm font-bold mt-8 bg-white/20 backdrop-blur-sm rounded-full py-3 px-6 inline-block mx-auto">
-            @FPL_Dave_ • FPL Analytics
+            {/* Footer */}
+            <div className="text-center text-white/80 text-sm font-bold mt-8 bg-white/20 backdrop-blur-sm rounded-full py-3 px-6 inline-block mx-auto">
+              @FPL_Dave_ • FPL Analytics
+            </div>
           </div>
         </div>
       </div>

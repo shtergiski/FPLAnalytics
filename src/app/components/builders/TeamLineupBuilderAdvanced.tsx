@@ -554,129 +554,131 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       </Card>
 
       {/* Preview Card */}
-      <div className="flex justify-center overflow-x-auto">
-        <div
-          ref={cardRef}
-          className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-2xl relative overflow-hidden inline-block"
-          style={{ padding: '48px', minWidth: '850px', maxWidth: '1000px', width: 'fit-content' }}
-        >
-          {/* Pitch lines */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
-            <div className="absolute top-1/2 left-1/2 w-32 h-32 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute top-0 left-1/2 w-48 h-24 border-2 border-white border-t-0 -translate-x-1/2" />
-            <div className="absolute bottom-0 left-1/2 w-48 h-24 border-2 border-white border-b-0 -translate-x-1/2" />
-          </div>
-
-          {/* Header */}
-          <div className="text-center mb-10 relative z-10">
-            <div className="text-5xl font-black text-white mb-2">{teamName}</div>
-            <div className="text-2xl text-green-100 font-medium">
-              Gameweek {gameweek} • Formation: {formation}
-            </div>
-          </div>
-
-          {/* Formation Display */}
-          <div className="space-y-10 relative z-10">
-            {/* Forwards */}
-            <div className="flex justify-center gap-8">
-              {positionGroups[3]?.map((player, idx) => (
-                <div key={idx} className="text-center relative">
-                  <div className={`w-20 h-20 ${positionColors[3].bg} border-4 ${positionColors[3].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
-                    {renderPlayerAvatar(player, positionColors[3])}
-                    {player.isCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
-                    )}
-                    {player.isViceCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
-                    )}
-                  </div>
-                  <div className={`text-white text-sm font-bold ${positionColors[3].label} px-3 py-1 rounded-full shadow-lg`}>
-                    {player.webName}
-                  </div>
-                </div>
-              ))}
+      <div className="overflow-hidden">
+        <div className="flex justify-start overflow-x-auto pb-4">
+          <div
+            ref={cardRef}
+            className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-2xl relative overflow-hidden inline-block"
+            style={{ padding: '48px', minWidth: '800px', maxWidth: '1000px', width: 'fit-content' }}
+          >
+            {/* Pitch lines */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
+              <div className="absolute top-1/2 left-1/2 w-32 h-32 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+              <div className="absolute top-0 left-1/2 w-48 h-24 border-2 border-white border-t-0 -translate-x-1/2" />
+              <div className="absolute bottom-0 left-1/2 w-48 h-24 border-2 border-white border-b-0 -translate-x-1/2" />
             </div>
 
-            {/* Midfielders */}
-            <div className="flex justify-center gap-8">
-              {positionGroups[2]?.map((player, idx) => (
-                <div key={idx} className="text-center relative">
-                  <div className={`w-20 h-20 ${positionColors[2].bg} border-4 ${positionColors[2].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
-                    {renderPlayerAvatar(player, positionColors[2])}
-                    {player.isCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
-                    )}
-                    {player.isViceCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
-                    )}
-                  </div>
-                  <div className={`text-white text-sm font-bold ${positionColors[2].label} px-3 py-1 rounded-full shadow-lg`}>
-                    {player.webName}
-                  </div>
-                </div>
-              ))}
+            {/* Header */}
+            <div className="text-center mb-10 relative z-10">
+              <div className="text-5xl font-black text-white mb-2">{teamName}</div>
+              <div className="text-2xl text-green-100 font-medium">
+                Gameweek {gameweek} • Formation: {formation}
+              </div>
             </div>
 
-            {/* Defenders */}
-            <div className="flex justify-center gap-8">
-              {positionGroups[1]?.map((player, idx) => (
-                <div key={idx} className="text-center relative">
-                  <div className={`w-20 h-20 ${positionColors[1].bg} border-4 ${positionColors[1].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
-                    {renderPlayerAvatar(player, positionColors[1])}
-                    {player.isCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
-                    )}
-                    {player.isViceCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
-                    )}
+            {/* Formation Display */}
+            <div className="space-y-10 relative z-10">
+              {/* Forwards */}
+              <div className="flex justify-center gap-8">
+                {positionGroups[3]?.map((player, idx) => (
+                  <div key={idx} className="text-center relative">
+                    <div className={`w-20 h-20 ${positionColors[3].bg} border-4 ${positionColors[3].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
+                      {renderPlayerAvatar(player, positionColors[3])}
+                      {player.isCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
+                      )}
+                      {player.isViceCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
+                      )}
+                    </div>
+                    <div className={`text-white text-sm font-bold ${positionColors[3].label} px-3 py-1 rounded-full shadow-lg`}>
+                      {player.webName}
+                    </div>
                   </div>
-                  <div className={`text-white text-sm font-bold ${positionColors[1].label} px-3 py-1 rounded-full shadow-lg`}>
-                    {player.webName}
+                ))}
+              </div>
+
+              {/* Midfielders */}
+              <div className="flex justify-center gap-8">
+                {positionGroups[2]?.map((player, idx) => (
+                  <div key={idx} className="text-center relative">
+                    <div className={`w-20 h-20 ${positionColors[2].bg} border-4 ${positionColors[2].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
+                      {renderPlayerAvatar(player, positionColors[2])}
+                      {player.isCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
+                      )}
+                      {player.isViceCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
+                      )}
+                    </div>
+                    <div className={`text-white text-sm font-bold ${positionColors[2].label} px-3 py-1 rounded-full shadow-lg`}>
+                      {player.webName}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              {/* Defenders */}
+              <div className="flex justify-center gap-8">
+                {positionGroups[1]?.map((player, idx) => (
+                  <div key={idx} className="text-center relative">
+                    <div className={`w-20 h-20 ${positionColors[1].bg} border-4 ${positionColors[1].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
+                      {renderPlayerAvatar(player, positionColors[1])}
+                      {player.isCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
+                      )}
+                      {player.isViceCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
+                      )}
+                    </div>
+                    <div className={`text-white text-sm font-bold ${positionColors[1].label} px-3 py-1 rounded-full shadow-lg`}>
+                      {player.webName}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Goalkeeper */}
+              <div className="flex justify-center">
+                {positionGroups[0]?.map((player, idx) => (
+                  <div key={idx} className="text-center relative">
+                    <div className={`w-20 h-20 ${positionColors[0].bg} border-4 ${positionColors[0].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
+                      {renderPlayerAvatar(player, positionColors[0])}
+                      {player.isCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
+                      )}
+                      {player.isViceCaptain && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
+                      )}
+                    </div>
+                    <div className={`text-white text-sm font-bold ${positionColors[0].label} px-3 py-1 rounded-full shadow-lg`}>
+                      {player.webName}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Goalkeeper */}
-            <div className="flex justify-center">
-              {positionGroups[0]?.map((player, idx) => (
-                <div key={idx} className="text-center relative">
-                  <div className={`w-20 h-20 ${positionColors[0].bg} border-4 ${positionColors[0].border} rounded-full flex items-center justify-center shadow-2xl mb-2 overflow-hidden relative`}>
-                    {renderPlayerAvatar(player, positionColors[0])}
-                    {player.isCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">C</div>
-                    )}
-                    {player.isViceCaptain && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">V</div>
-                    )}
+            {/* Bench Display - No images, text only */}
+            <div className="mt-10 relative z-10">
+              <div className="text-white/70 text-sm font-bold mb-3 text-center">BENCH</div>
+              <div className="flex justify-center gap-4">
+                {bench.map((player, idx) => (
+                  <div key={idx} className="text-center">
+                    <div className="w-14 h-14 bg-gray-700/50 border-2 border-gray-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                      {player.position}
+                    </div>
+                    <div className="text-white/70 text-xs font-medium mt-1 max-w-[60px] truncate">{player.webName}</div>
                   </div>
-                  <div className={`text-white text-sm font-bold ${positionColors[0].label} px-3 py-1 rounded-full shadow-lg`}>
-                    {player.webName}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Bench Display - No images, text only */}
-          <div className="mt-10 relative z-10">
-            <div className="text-white/70 text-sm font-bold mb-3 text-center">BENCH</div>
-            <div className="flex justify-center gap-4">
-              {bench.map((player, idx) => (
-                <div key={idx} className="text-center">
-                  <div className="w-14 h-14 bg-gray-700/50 border-2 border-gray-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
-                    {player.position}
-                  </div>
-                  <div className="text-white/70 text-xs font-medium mt-1 max-w-[60px] truncate">{player.webName}</div>
-                </div>
-              ))}
+            {/* Footer */}
+            <div className="text-center text-white/70 text-sm font-medium mt-8 relative z-10">
+              @FPL_Dave_ • FPL Analytics
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center text-white/70 text-sm font-medium mt-8 relative z-10">
-            @FPL_Dave_ • FPL Analytics
           </div>
         </div>
       </div>

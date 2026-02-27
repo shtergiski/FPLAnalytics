@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Download, Share2, Upload } from 'lucide-react';
 import { Player } from '../../types/fpl';
 import { toPng } from 'html-to-image';
+import { convertImageToBase64 } from '../../utils/imageUtils';
 
 interface GameweekReviewBuilderProps {
   players: Player[];
@@ -44,14 +45,53 @@ export function GameweekReviewBuilder({ players }: GameweekReviewBuilderProps) {
 
   const exportAsImage = async (format: 'png' | 'jpeg') => {
     if (!cardRef.current) return;
+    
     try {
-      const dataUrl = await toPng(cardRef.current, { quality: 1.0, pixelRatio: 2 });
+      // Convert external images to base64 to avoid CORS issues
+      const imgElements = cardRef.current.querySelectorAll('img');
+      const originalSrcs: string[] = [];
+      
+      // Store original sources and convert to base64
+      for (let i = 0; i < imgElements.length; i++) {
+        const img = imgElements[i];
+        originalSrcs.push(img.src);
+        
+        // Only convert if it's an external URL (not already base64)
+        if (!img.src.startsWith('data:')) {
+          try {
+            const base64 = await convertImageToBase64(img.src);
+            if (base64) {
+              img.src = base64;
+            }
+          } catch (err) {
+            console.warn('Failed to convert image:', err);
+          }
+        }
+      }
+      
+      // Wait a bit for images to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Export the card
+      const dataUrl = await toPng(cardRef.current, { 
+        quality: 1.0, 
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      
+      // Restore original sources
+      for (let i = 0; i < imgElements.length; i++) {
+        imgElements[i].src = originalSrcs[i];
+      }
+      
+      // Download the image
       const link = document.createElement('a');
       link.download = `GW${gameweek}_Review.${format}`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Failed to export:', error);
+      alert('Failed to export image. Please try again.');
     }
   };
 
@@ -199,78 +239,80 @@ export function GameweekReviewBuilder({ players }: GameweekReviewBuilderProps) {
         </div>
       </Card>
 
-      {/* Preview Card */}
-      <div className="flex justify-center overflow-x-auto">
-        <div
-          ref={cardRef}
-          className="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 rounded-2xl shadow-2xl inline-block"
-          style={{ padding: '48px', minWidth: '750px', maxWidth: '900px', width: 'fit-content' }}
-        >
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="text-6xl font-black text-white mb-2">GAMEWEEK {gameweek}</div>
-            <div className="text-2xl text-blue-100 font-medium">Review</div>
-          </div>
+      {/* Preview Card - SCALED FOR MOBILE */}
+      <div className="flex justify-start overflow-hidden">
+        <div className="w-[1080px] h-[1080px] scale-[0.35] md:scale-[0.50] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[680px] md:-mb-[530px] xl:-mb-[400px] -mr-[702px] md:-mr-[540px] xl:-mr-[345px]">
+          <div
+            ref={cardRef}
+            className="w-[1080px] h-[1080px] bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 rounded-[40px] shadow-2xl flex flex-col justify-between"
+            style={{ padding: '60px' }}
+          >
+            {/* Header */}
+            <div className="text-center">
+              <div className="text-8xl font-black text-white mb-3">GAMEWEEK {gameweek}</div>
+              <div className="text-3xl text-blue-100 font-medium">Review</div>
+            </div>
 
-          {/* Main Stats */}
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border border-white/30">
-              <div className="text-white/80 text-sm font-medium mb-2">Total Points</div>
-              <div className="text-6xl font-black text-white">{totalPoints}</div>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border border-white/30">
-              <div className="text-white/80 text-sm font-medium mb-2">Overall Rank</div>
-              <div className="text-6xl font-black text-white">{rank}</div>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center border border-white/30">
-              {captainImage && (
-                <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-3 border-white shadow-lg">
-                  <img
-                    src={captainImage}
-                    alt={captain}
-                    className="w-full h-full object-cover"
-                    style={{
-                      transform: `translate(${captainPosition.x}%, ${captainPosition.y}%) scale(${captainPosition.scale}%)`,
-                    }}
-                  />
-                </div>
-              )}
-              <div className="text-white/80 text-sm font-medium mb-2">Captain</div>
-              <div className="text-3xl font-black text-white">{captain}</div>
-              <div className="text-2xl text-white/90 font-bold mt-1">{captainPoints} pts</div>
-            </div>
-          </div>
-
-          {/* Additional Info */}
-          <div className="grid grid-cols-2 gap-6 mb-8">
-            <div className="bg-white rounded-xl p-5 text-center">
-              {topScorerImage && (
-                <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-3 border-purple-600 shadow-lg">
-                  <img
-                    src={topScorerImage}
-                    alt={topScorer}
-                    className="w-full h-full object-cover"
-                    style={{
-                      transform: `translate(${topScorerPosition.x}%, ${topScorerPosition.y}%) scale(${topScorerPosition.scale}%)`,
-                    }}
-                  />
-                </div>
-              )}
-              <div className="text-gray-600 text-sm font-medium mb-1">Top Scorer</div>
-              <div className="text-3xl font-black text-purple-600">{topScorer}</div>
-              <div className="text-xl font-bold text-gray-700">{topScorerPoints} points</div>
-            </div>
-            {chipUsed && (
-              <div className="bg-white rounded-xl p-5 text-center">
-                <div className="text-gray-600 text-sm font-medium mb-1">Chip Used</div>
-                <div className="text-3xl font-black text-blue-600">{chipUsed}</div>
+            {/* Main Stats */}
+            <div className="grid grid-cols-3 gap-8">
+              <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-8 text-center border border-white/30">
+                <div className="text-white/80 text-xl font-medium mb-3">Total Points</div>
+                <div className="text-8xl font-black text-white">{totalPoints}</div>
               </div>
-            )}
-          </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-8 text-center border border-white/30">
+                <div className="text-white/80 text-xl font-medium mb-3">Overall Rank</div>
+                <div className="text-8xl font-black text-white">{rank}</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-3xl p-8 text-center border border-white/30">
+                {captainImage && (
+                  <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-3 border-white shadow-lg">
+                    <img
+                      src={captainImage}
+                      alt={captain}
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `translate(${captainPosition.x}%, ${captainPosition.y}%) scale(${captainPosition.scale}%)`,
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="text-white/80 text-xl font-medium mb-3">Captain</div>
+                <div className="text-4xl font-black text-white">{captain}</div>
+                <div className="text-3xl text-white/90 font-bold mt-1">{captainPoints} pts</div>
+              </div>
+            </div>
 
-          {/* Footer */}
-          <div className="text-center text-white/70 text-sm font-medium">
-            @FPL_Dave_ • FPL Analytics
+            {/* Additional Info */}
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="bg-white rounded-xl p-5 text-center">
+                {topScorerImage && (
+                  <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-3 border-purple-600 shadow-lg">
+                    <img
+                      src={topScorerImage}
+                      alt={topScorer}
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: `translate(${topScorerPosition.x}%, ${topScorerPosition.y}%) scale(${topScorerPosition.scale}%)`,
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="text-gray-600 text-sm font-medium mb-1">Top Scorer</div>
+                <div className="text-3xl font-black text-purple-600">{topScorer}</div>
+                <div className="text-xl font-bold text-gray-700">{topScorerPoints} points</div>
+              </div>
+              {chipUsed && (
+                <div className="bg-white rounded-xl p-5 text-center">
+                  <div className="text-gray-600 text-sm font-medium mb-1">Chip Used</div>
+                  <div className="text-3xl font-black text-blue-600">{chipUsed}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-white/70 text-sm font-medium">
+              @FPL_Dave_ • FPL Analytics
+            </div>
           </div>
         </div>
       </div>

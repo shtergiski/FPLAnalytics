@@ -94,91 +94,91 @@ export function PlayerStats({ players }: PlayerStatsProps) {
     ];
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Back Button */}
-        <Button variant="outline" onClick={() => setSelectedPlayer(null)}>
+        <Button variant="outline" onClick={() => setSelectedPlayer(null)} className="text-xs sm:text-sm">
           ← Back to Player List
         </Button>
 
-        {/* Player Header */}
-        <Card className="p-8 bg-gradient-to-br from-purple-600 via-purple-500 to-blue-500">
-          <div className="flex items-start justify-between text-white">
-            <div className="flex-1">
-              <Badge className={`${position.color} mb-3`}>
+        {/* Player Header - MOBILE OPTIMIZED */}
+        <Card className="p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-purple-600 via-purple-500 to-blue-500">
+          <div className="flex flex-col lg:flex-row items-start justify-between text-white gap-4 lg:gap-0">
+            <div className="flex-1 w-full">
+              <Badge className={`${position.color} mb-2 sm:mb-3 text-xs sm:text-sm`}>
                 {position.name}
               </Badge>
-              <h1 className="text-5xl font-black mb-2">{selectedPlayer.web_name}</h1>
-              <p className="text-2xl text-purple-100 mb-4">{selectedPlayer.team_name}</p>
-              <div className="flex items-center gap-6">
+              <h1 className="text-2xl sm:text-3xl lg:text-5xl font-black mb-1 sm:mb-2">{selectedPlayer.web_name}</h1>
+              <p className="text-base sm:text-xl lg:text-2xl text-purple-100 mb-3 sm:mb-4">{selectedPlayer.team_name}</p>
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:flex lg:items-center lg:gap-6">
                 <div>
-                  <div className="text-sm text-purple-200">Price</div>
-                  <div className="text-3xl font-bold">£{(selectedPlayer.now_cost / 10).toFixed(1)}m</div>
+                  <div className="text-xs sm:text-sm text-purple-200">Price</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold">£{(selectedPlayer.now_cost / 10).toFixed(1)}m</div>
                   {priceChange !== 0 && (
-                    <div className={`text-sm font-semibold ${priceChange > 0 ? 'text-green-300' : 'text-red-300'}`}>
-                      {priceChange > 0 ? '+' : ''}{priceChange.toFixed(1)}m this season
+                    <div className={`text-[10px] sm:text-xs lg:text-sm font-semibold ${priceChange > 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      {priceChange > 0 ? '+' : ''}{priceChange.toFixed(1)}m
                     </div>
                   )}
                 </div>
                 <div>
-                  <div className="text-sm text-purple-200">Ownership</div>
-                  <div className="text-3xl font-bold">{selectedPlayer.selected_by_percent}%</div>
+                  <div className="text-xs sm:text-sm text-purple-200">Ownership</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{selectedPlayer.selected_by_percent}%</div>
                 </div>
                 <div>
-                  <div className="text-sm text-purple-200">Form</div>
-                  <div className="text-3xl font-bold">{selectedPlayer.form}</div>
+                  <div className="text-xs sm:text-sm text-purple-200">Form</div>
+                  <div className="text-xl sm:text-2xl lg:text-3xl font-bold">{selectedPlayer.form}</div>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-7xl font-black">{selectedPlayer.total_points}</div>
-              <div className="text-lg text-purple-200">Total Points</div>
+            <div className="text-center lg:text-right w-full lg:w-auto">
+              <div className="text-5xl sm:text-6xl lg:text-7xl font-black">{selectedPlayer.total_points}</div>
+              <div className="text-sm sm:text-base lg:text-lg text-purple-200">Total Points</div>
             </div>
           </div>
         </Card>
 
         {/* Key Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <Card className="p-4 text-center">
-            <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{selectedPlayer.goals_scored}</div>
-            <div className="text-sm text-gray-600">Goals</div>
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
+          <Card className="p-2 sm:p-3 lg:p-4 text-center">
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-600 mx-auto mb-1 sm:mb-2" />
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{selectedPlayer.goals_scored}</div>
+            <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">Goals</div>
           </Card>
-          <Card className="p-4 text-center">
-            <Activity className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{selectedPlayer.assists}</div>
-            <div className="text-sm text-gray-600">Assists</div>
+          <Card className="p-2 sm:p-3 lg:p-4 text-center">
+            <Activity className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600 mx-auto mb-1 sm:mb-2" />
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{selectedPlayer.assists}</div>
+            <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">Assists</div>
           </Card>
-          <Card className="p-4 text-center">
-            <Shield className="w-6 h-6 text-green-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{selectedPlayer.clean_sheets}</div>
-            <div className="text-sm text-gray-600">Clean Sheets</div>
+          <Card className="p-2 sm:p-3 lg:p-4 text-center">
+            <Shield className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600 mx-auto mb-1 sm:mb-2" />
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{selectedPlayer.clean_sheets}</div>
+            <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">CS</div>
           </Card>
-          <Card className="p-4 text-center">
-            <Award className="w-6 h-6 text-yellow-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{selectedPlayer.bonus}</div>
-            <div className="text-sm text-gray-600">Bonus</div>
+          <Card className="p-2 sm:p-3 lg:p-4 text-center">
+            <Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-yellow-600 mx-auto mb-1 sm:mb-2" />
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{selectedPlayer.bonus}</div>
+            <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">Bonus</div>
           </Card>
-          <Card className="p-4 text-center">
-            <Clock className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{selectedPlayer.minutes}</div>
-            <div className="text-sm text-gray-600">Minutes</div>
+          <Card className="p-2 sm:p-3 lg:p-4 text-center">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-600 mx-auto mb-1 sm:mb-2" />
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{selectedPlayer.minutes}</div>
+            <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">Mins</div>
           </Card>
-          <Card className="p-4 text-center">
-            <BarChart3 className="w-6 h-6 text-indigo-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-gray-900">{selectedPlayer.points_per_game}</div>
-            <div className="text-sm text-gray-600">PPG</div>
+          <Card className="p-2 sm:p-3 lg:p-4 text-center">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-indigo-600 mx-auto mb-1 sm:mb-2" />
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{selectedPlayer.points_per_game}</div>
+            <div className="text-[10px] sm:text-xs lg:text-sm text-gray-600">PPG</div>
           </Card>
         </div>
 
         {/* Charts Section */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Radar Chart */}
-          <Card className="p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Performance Radar</h3>
-            <ResponsiveContainer width="100%" height={300}>
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Performance Radar</h3>
+            <ResponsiveContainer width="100%" height={250}>
               <RadarChart data={performanceData}>
                 <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                <PolarAngleAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} />
                 <PolarRadiusAxis angle={90} domain={[0, 'dataMax']} tick={{ fill: '#6b7280' }} />
                 <Radar 
                   name={selectedPlayer.web_name} 
@@ -193,54 +193,54 @@ export function PlayerStats({ players }: PlayerStatsProps) {
           </Card>
 
           {/* Additional Stats */}
-          <Card className="p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Additional Statistics</h3>
-            <div className="space-y-4">
+          <Card className="p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Additional Statistics</h3>
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">ICT Index</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.ict_index}</span>
+                <span className="text-xs sm:text-sm text-gray-600">ICT Index</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.ict_index}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Expected Goals (xG)</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.expected_goals}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Expected Goals (xG)</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.expected_goals}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Expected Assists (xA)</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.expected_assists}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Expected Assists (xA)</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.expected_assists}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Expected Goal Involvement (xGI)</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.expected_goal_involvements}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Expected Goal Involvement (xGI)</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.expected_goal_involvements}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Threat</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.threat}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Threat</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.threat}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Creativity</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.creativity}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Creativity</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.creativity}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Influence</span>
-                <span className="font-bold text-gray-900">{selectedPlayer.influence}</span>
+                <span className="text-xs sm:text-sm text-gray-600">Influence</span>
+                <span className="font-bold text-sm sm:text-base text-gray-900">{selectedPlayer.influence}</span>
               </div>
             </div>
           </Card>
         </div>
 
         {/* Fixtures */}
-        <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">
             Next {fixturesToShow} Fixture{fixturesToShow !== 1 ? 's' : ''}
             {remainingGameweeks <= 5 && remainingGameweeks > 0 && (
-              <span className="text-sm font-normal text-gray-500 ml-2">
+              <span className="text-xs sm:text-sm font-normal text-gray-500 ml-2">
                 ({remainingGameweeks} GW{remainingGameweeks !== 1 ? 's' : ''} remaining)
               </span>
             )}
           </h3>
           {fixtures.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>No upcoming fixtures available</p>
+              <p className="text-xs sm:text-sm">No upcoming fixtures available</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

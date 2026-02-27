@@ -7,6 +7,7 @@ import { Player } from '../../types/fpl';
 import { toPng } from 'html-to-image';
 import { ImagePositionControls } from '../ImagePositionControls';
 import { PlayerCombobox } from '../ui/player-combobox';
+import { convertImageToBase64 } from '../../utils/imageUtils';
 import { useFPLStore } from '../../store/fpl-store';
 import { Loading } from '../ui/loading';
 
@@ -76,14 +77,53 @@ export function TransferSuggestionBuilder({ players }: TransferSuggestionBuilder
 
   const exportAsImage = async () => {
     if (!cardRef.current) return;
+    
     try {
-      const dataUrl = await toPng(cardRef.current, { quality: 1.0, pixelRatio: 2 });
+      // Convert external images to base64 to avoid CORS issues
+      const imgElements = cardRef.current.querySelectorAll('img');
+      const originalSrcs: string[] = [];
+      
+      // Store original sources and convert to base64
+      for (let i = 0; i < imgElements.length; i++) {
+        const img = imgElements[i];
+        originalSrcs.push(img.src);
+        
+        // Only convert if it's an external URL (not already base64)
+        if (!img.src.startsWith('data:')) {
+          try {
+            const base64 = await convertImageToBase64(img.src);
+            if (base64) {
+              img.src = base64;
+            }
+          } catch (err) {
+            console.warn('Failed to convert image:', err);
+          }
+        }
+      }
+      
+      // Wait a bit for images to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Export the card
+      const dataUrl = await toPng(cardRef.current, { 
+        quality: 1.0, 
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      
+      // Restore original sources
+      for (let i = 0; i < imgElements.length; i++) {
+        imgElements[i].src = originalSrcs[i];
+      }
+      
+      // Download the image
       const link = document.createElement('a');
       link.download = `Transfer_${selectedPlayerOut?.web_name}_to_${selectedPlayerIn?.web_name}_GW${gameweek}.png`;
       link.href = dataUrl;
       link.click();
     } catch (error) {
       console.error('Failed to export:', error);
+      alert('Failed to export image. Please try again.');
     }
   };
 
@@ -170,88 +210,90 @@ export function TransferSuggestionBuilder({ players }: TransferSuggestionBuilder
         </div>
       </Card>
 
-      {/* Preview Card */}
-      <div className="flex justify-center overflow-x-auto">
-        <div
-          ref={cardRef}
-          className="bg-gradient-to-br from-indigo-600 via-purple-500 to-pink-600 rounded-2xl shadow-2xl inline-block"
-          style={{ padding: '48px', minWidth: '850px', maxWidth: '1000px', width: 'fit-content' }}
-        >
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="text-4xl font-black text-white mb-2">TRANSFER SUGGESTION</div>
-            <div className="text-2xl text-indigo-100 font-medium">Gameweek {gameweek}</div>
-          </div>
-
-          {/* Transfer Display */}
-          <div className="flex items-center gap-6 mb-8">
-            {/* Player Out */}
-            <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-red-400">
-              <div className="text-center">
-                {imageOut ? (
-                  <div
-                    className="w-28 h-28 mx-auto mb-4 rounded-full overflow-hidden border-4 border-red-400 shadow-lg"
-                    style={{
-                      transform: `translate(${positionOut.x}%, ${positionOut.y}%) scale(${positionOut.scale}%)`,
-                    }}
-                  >
-                    <img src={imageOut} alt={selectedPlayerOut?.web_name} className="w-full h-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="w-28 h-28 mx-auto mb-4 rounded-full bg-red-400/30 border-4 border-red-400 flex items-center justify-center">
-                    <span className="text-5xl">👤</span>
-                  </div>
-                )}
-                <div className="text-white/70 text-sm font-bold mb-1">OUT</div>
-                <div className="text-3xl font-black text-white mb-2">{selectedPlayerOut?.web_name}</div>
-                <div className="text-xl font-bold text-red-300">£{selectedPlayerOut?.now_cost / 10}m</div>
-              </div>
+      {/* Preview Card - SCALED FOR MOBILE */}
+      <div className="flex justify-start overflow-hidden">
+        <div className="w-[1080px] h-[1080px] scale-[0.35] md:scale-[0.50] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[680px] md:-mb-[530px] xl:-mb-[400px] -mr-[702px] md:-mr-[540px] xl:-mr-[345px]">
+          <div
+            ref={cardRef}
+            className="w-[1080px] h-[1080px] bg-gradient-to-br from-indigo-600 via-purple-500 to-pink-600 rounded-[40px] shadow-2xl flex flex-col justify-center"
+            style={{ padding: '80px' }}
+          >
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="text-4xl font-black text-white mb-2">TRANSFER SUGGESTION</div>
+              <div className="text-2xl text-indigo-100 font-medium">Gameweek {gameweek}</div>
             </div>
 
-            {/* Arrow */}
-            <div className="bg-white rounded-full p-4 shadow-xl">
-              <ArrowRight className="w-10 h-10 text-purple-600" strokeWidth={3} />
-            </div>
-
-            {/* Player In */}
-            <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-green-400">
-              <div className="text-center">
-                {imageIn ? (
-                  <div
-                    className="w-28 h-28 mx-auto mb-4 rounded-full overflow-hidden border-4 border-green-400 shadow-lg"
-                    style={{
-                      transform: `translate(${positionIn.x}%, ${positionIn.y}%) scale(${positionIn.scale}%)`,
-                    }}
-                  >
-                    <img src={imageIn} alt={selectedPlayerIn?.web_name} className="w-full h-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="w-28 h-28 mx-auto mb-4 rounded-full bg-green-400/30 border-4 border-green-400 flex items-center justify-center">
-                    <span className="text-5xl">👤</span>
-                  </div>
-                )}
-                <div className="text-white/70 text-sm font-bold mb-1">IN</div>
-                <div className="text-3xl font-black text-white mb-2">{selectedPlayerIn?.web_name}</div>
-                <div className="text-xl font-bold text-green-300">£{selectedPlayerIn?.now_cost / 10}m</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Reasons */}
-          <div className="bg-white rounded-2xl p-6 shadow-xl">
-            <h3 className="text-2xl font-black text-purple-600 mb-4">{reasonTitle}</h3>
-            <div className="space-y-2">
-              {reasons.map((reason, idx) => (
-                <div key={idx} className="text-gray-800 text-lg font-medium">
-                  {reason}
+            {/* Transfer Display */}
+            <div className="flex items-center gap-6 mb-8">
+              {/* Player Out */}
+              <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-red-400">
+                <div className="text-center">
+                  {imageOut ? (
+                    <div
+                      className="w-28 h-28 mx-auto mb-4 rounded-full overflow-hidden border-4 border-red-400 shadow-lg"
+                      style={{
+                        transform: `translate(${positionOut.x}%, ${positionOut.y}%) scale(${positionOut.scale}%)`,
+                      }}
+                    >
+                      <img src={imageOut} alt={selectedPlayerOut?.web_name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-28 h-28 mx-auto mb-4 rounded-full bg-red-400/30 border-4 border-red-400 flex items-center justify-center">
+                      <span className="text-5xl">👤</span>
+                    </div>
+                  )}
+                  <div className="text-white/70 text-sm font-bold mb-1">OUT</div>
+                  <div className="text-3xl font-black text-white mb-2">{selectedPlayerOut?.web_name}</div>
+                  <div className="text-xl font-bold text-red-300">£{selectedPlayerOut?.now_cost / 10}m</div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          {/* Footer */}
-          <div className="text-center text-white/70 text-sm font-medium mt-6">
-            @FPL_Dave_ • FPL Analytics
+              {/* Arrow */}
+              <div className="bg-white rounded-full p-4 shadow-xl">
+                <ArrowRight className="w-10 h-10 text-purple-600" strokeWidth={3} />
+              </div>
+
+              {/* Player In */}
+              <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 border-green-400">
+                <div className="text-center">
+                  {imageIn ? (
+                    <div
+                      className="w-28 h-28 mx-auto mb-4 rounded-full overflow-hidden border-4 border-green-400 shadow-lg"
+                      style={{
+                        transform: `translate(${positionIn.x}%, ${positionIn.y}%) scale(${positionIn.scale}%)`,
+                      }}
+                    >
+                      <img src={imageIn} alt={selectedPlayerIn?.web_name} className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-28 h-28 mx-auto mb-4 rounded-full bg-green-400/30 border-4 border-green-400 flex items-center justify-center">
+                      <span className="text-5xl">👤</span>
+                    </div>
+                  )}
+                  <div className="text-white/70 text-sm font-bold mb-1">IN</div>
+                  <div className="text-3xl font-black text-white mb-2">{selectedPlayerIn?.web_name}</div>
+                  <div className="text-xl font-bold text-green-300">£{selectedPlayerIn?.now_cost / 10}m</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reasons */}
+            <div className="bg-white rounded-2xl p-6 shadow-xl">
+              <h3 className="text-2xl font-black text-purple-600 mb-4">{reasonTitle}</h3>
+              <div className="space-y-2">
+                {reasons.map((reason, idx) => (
+                  <div key={idx} className="text-gray-800 text-lg font-medium">
+                    {reason}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-white/70 text-sm font-medium mt-6">
+              @FPL_Dave_ • FPL Analytics
+            </div>
           </div>
         </div>
       </div>

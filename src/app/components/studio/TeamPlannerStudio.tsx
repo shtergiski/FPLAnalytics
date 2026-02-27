@@ -564,6 +564,12 @@ export function TeamPlannerStudio() {
           {/* Football Pitch */}
           <div className="relative bg-gradient-to-b from-green-600 to-green-700 rounded-xl overflow-hidden min-h-[500px] sm:min-h-[600px] lg:min-h-[700px]" ref={pitchRef}>
             
+            {/* Fantasy Branding at Top */}
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center z-10">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white/90 mb-0.5">⚽ Fantasy</div>
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-white/70">@FPL_Dave_</div>
+            </div>
+
             {/* Goalkeeper */}
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
               <PitchPlayerSlot
@@ -665,11 +671,6 @@ export function TeamPlannerStudio() {
                 );
               })}
             </div>
-
-            {/* FPL Dave watermark */}
-            <div className="absolute bottom-4 right-4 text-white/40 text-sm font-semibold">
-              @FPL_Dave_
-            </div>
           </div>
 
           {/* Substitutes */}
@@ -722,9 +723,11 @@ export function TeamPlannerStudio() {
             <Button 
               className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs sm:text-sm h-9 sm:h-10"
               onClick={async () => {
-                if (pitchRef.current) {
+                // Use the hidden export pitch instead
+                const exportPitch = document.getElementById('export-pitch-hidden');
+                if (exportPitch) {
                   try {
-                    await ExportService.exportCard(pitchRef.current, `${teamName.replace(/\s/g, '_')}_team`);
+                    await ExportService.exportCard(exportPitch as HTMLElement, `${teamName.replace(/\s/g, '_')}_team`);
                   } catch (error) {
                     console.error('Export failed:', error);
                     alert('Export failed. Please try again or use browser screenshot.');
@@ -737,6 +740,110 @@ export function TeamPlannerStudio() {
             </Button>
           </div>
         </Card>
+      </div>
+
+      {/* HIDDEN EXPORT PITCH - Matches your exact HTML structure */}
+      <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none">
+        <div className="w-[1080px] h-[1350px]">
+          <div id="export-pitch-hidden" className="flex flex-col items-center bg-gradient-to-r from-[#9146ff]/80 to-[#00d8ff]/80 rounded-3xl backdrop-blur-sm w-full h-full w-[1080px] h-[1350px]">
+            {/* Stats Header */}
+            <div className="flex justify-center gap-6 p-4 rounded-xl w-fit mx-auto">
+              <div className="flex flex-col items-center justify-center gap-3 min-w-36">
+                <span className="text-center text-4xl font-bold text-blue-700 bg-white/60 backdrop-blur-sm rounded-xl border-2 border-white px-2 py-4 w-full">
+                  £{totalCost.toFixed(1)}m
+                </span>
+                <span className="text-center font-semibold text-xl text-blue-700 bg-white/60 backdrop-blur rounded-xl border-white px-2 py-1 w-full">
+                  Team Value
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center gap-3 min-w-36">
+                <span className="text-center text-4xl font-bold text-blue-700 bg-white/60 backdrop-blur-sm rounded-xl border-2 border-white px-2 py-4 w-full">
+                  {teamName.split('GW')[1] || '28'}
+                </span>
+                <span className="text-center font-semibold text-xl text-blue-700 bg-white/60 backdrop-blur rounded-xl border-white px-2 py-1 w-full">
+                  Gameweek
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center gap-3 min-w-36">
+                <span className="text-center text-4xl font-bold text-blue-700 bg-white/60 backdrop-blur-sm rounded-xl border-2 border-white px-2 py-4 w-full">
+                  £{remainingBudget.toFixed(1)}m
+                </span>
+                <span className="text-center font-semibold text-xl text-blue-700 bg-white/60 backdrop-blur rounded-xl border-white px-2 py-1 w-full">
+                  Bank
+                </span>
+              </div>
+            </div>
+
+            {/* Pitch with Players - Using actual PNG as image */}
+            <div className="relative w-full h-full">
+              {/* Pitch Background Image */}
+              <img 
+                src="figma:asset/73e8daeb6c13cff4f94e71f4e938352195978926.png" 
+                alt="Football Pitch" 
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              
+              {/* Players positioned on top of pitch */}
+              <div className="absolute inset-0 flex flex-col items-center gap-8 pt-4">
+                {/* Fantasy Branding */}
+                <div className="text-center z-10">
+                  <div className="text-5xl font-black text-white/90 mb-1">⚽ Fantasy</div>
+                  <div className="text-2xl font-bold text-white/70">@FPL_Dave_</div>
+                </div>
+
+                {/* Forwards */}
+                <div className="flex flex-row flex-wrap items-center justify-evenly w-11/12 mt-8">
+                  {Array.from({ length: formationLayout.fwd }).map((_, i) => {
+                    const slotIndex = 1 + formationLayout.def + formationLayout.mid + i;
+                    const player = startingXI[slotIndex];
+                    return (
+                      <ExportPlayerCard key={slotIndex} player={player} position="Forward" isCaptain={captain === player?.id} isViceCaptain={viceCaptain === player?.id} />
+                    );
+                  })}
+                </div>
+
+                {/* Midfielders */}
+                <div className="flex flex-row flex-wrap items-center justify-evenly w-11/12">
+                  {Array.from({ length: formationLayout.mid }).map((_, i) => {
+                    const slotIndex = 1 + formationLayout.def + i;
+                    const player = startingXI[slotIndex];
+                    return (
+                      <ExportPlayerCard key={slotIndex} player={player} position="Midfielder" isCaptain={captain === player?.id} isViceCaptain={viceCaptain === player?.id} />
+                    );
+                  })}
+                </div>
+
+                {/* Defenders */}
+                <div className="flex flex-row flex-wrap items-center justify-evenly w-11/12">
+                  {Array.from({ length: formationLayout.def }).map((_, i) => {
+                    const slotIndex = 1 + i;
+                    const player = startingXI[slotIndex];
+                    return (
+                      <ExportPlayerCard key={slotIndex} player={player} position="Defender" isCaptain={captain === player?.id} isViceCaptain={viceCaptain === player?.id} />
+                    );
+                  })}
+                </div>
+
+                {/* Goalkeeper */}
+                <div className="flex flex-row flex-wrap items-center justify-evenly w-11/12">
+                  <ExportPlayerCard player={startingXI[0]} position="Goalkeeper" isCaptain={captain === startingXI[0]?.id} isViceCaptain={viceCaptain === startingXI[0]?.id} />
+                </div>
+
+                {/* Bench */}
+                <div className="w-full -mt-10">
+                  <div className="ml-8 bg-secondary/30 backdrop-blur-sm rounded-t-2xl px-12 py-1.5 text-white text-center text-xl font-semibold w-fit">
+                    Bench
+                  </div>
+                  <div className="flex flex-row items-center justify-evenly w-full min-h-36 py-4 bg-secondary/30 backdrop-blur-sm rounded-md">
+                    {bench.map((player, index) => (
+                      <ExportPlayerCard key={`bench-${index}`} player={player} position={`Bench ${index === 0 ? 'GKP' : ''}`} isBench={true} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -875,6 +982,71 @@ function BenchSlot({
       } rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
         <X className="w-5 h-5 text-red-600" />
       </div>
+    </div>
+  );
+}
+
+// Export Player Card Component - Matches your exact HTML structure
+function ExportPlayerCard({ 
+  player, 
+  position,
+  isCaptain = false,
+  isViceCaptain = false,
+  isBench = false
+}: { 
+  player: SquadPlayer | null; 
+  position: string;
+  isCaptain?: boolean;
+  isViceCaptain?: boolean;
+  isBench?: boolean;
+}) {
+  return (
+    <div className="relative flex flex-col items-center cursor-pointer bg-white/30 backdrop-blur-sm rounded-xl border-4 border-white/60 m-2">
+      {/* Captain/Vice Captain Badge */}
+      {isCaptain && (
+        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-base font-black text-white z-10 shadow-xl border-2 border-white">
+          C
+        </div>
+      )}
+      {isViceCaptain && (
+        <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-base font-black text-white z-10 shadow-xl border-2 border-white">
+          V
+        </div>
+      )}
+
+      <div className="rounded-t-md">
+        <div className="relative w-36 h-32 rounded-t-md">
+          <div className="absolute inset-x-0 -top-4 h-36 overflow-hidden pt-1">
+            <img 
+              alt={player?.webName || 'Photo-Missing'}
+              loading="lazy"
+              width="565"
+              height="565"
+              decoding="async"
+              className="w-[190px] h-[190px] object-cover"
+              src={player ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.photoCode}.png` : 'https://resources.premierleague.com/premierleague/photos/players/250x250/Photo-Missing.png'}
+              onError={(e) => {
+                e.currentTarget.src = 'https://resources.premierleague.com/premierleague/photos/players/250x250/Photo-Missing.png';
+              }}
+            />
+            {!player && (
+              <div className="absolute inset-0 flex items-center justify-center cursor-crosshair animate-pulse">
+                <span className="bg-primary text-5xl text-white font-bold border-4 border-white rounded-full w-12 h-12 flex items-center justify-center mt-20 pb-4">
+                  +
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <h1 className="bg-[#9146FF] text-white text-xl py-1 font-semibold w-full text-center truncate">
+        {player ? player.webName : `Add ${position}`}
+      </h1>
+      
+      <p className="text-[#423488] bg-white/60 backdrop-blur-sm rounded-b-lg w-full text-center text-xl py-1 font-bold truncate">
+        £{player ? (player.now_cost / 10).toFixed(1) : '14.5'} | {player ? player.selected_by_percent : '25.5'}%
+      </p>
     </div>
   );
 }

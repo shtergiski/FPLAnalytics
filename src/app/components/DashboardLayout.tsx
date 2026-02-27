@@ -44,8 +44,8 @@ export function DashboardLayout({ children, currentPage = 'Dashboard', onNavigat
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-3 sm:px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">FD</span>
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+            <img src={xLogo} alt="FPL Dave Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <span className="font-bold text-gray-900 text-sm sm:text-base">FPL Dave</span>
@@ -74,8 +74,8 @@ export function DashboardLayout({ children, currentPage = 'Dashboard', onNavigat
         {/* Logo */}
         <div className="p-4 sm:p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-              <span className="text-white font-bold">FD</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+              <img src={xLogo} alt="FPL Dave Logo" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="font-bold text-base sm:text-lg">FPL Dave</div>

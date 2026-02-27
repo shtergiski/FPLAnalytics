@@ -7,6 +7,7 @@ import { Player } from '../../types/fpl';
 import { toPng } from 'html-to-image';
 import { ImagePositionControls } from '../ImagePositionControls';
 import { convertImageToBase64 } from '../../utils/imageUtils';
+import { AlertCircle } from 'lucide-react';
 
 interface TeamLineupBuilderProps {
   players: Player[];
@@ -182,121 +183,123 @@ export function TeamLineupBuilder({ players }: TeamLineupBuilderProps) {
       </Card>
 
       {/* Preview Card - SCALED FOR MOBILE */}
-      <div className="flex justify-start overflow-hidden">
-        <div className="w-[1080px] h-[1080px] scale-[0.35] md:scale-[0.50] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[680px] md:-mb-[530px] xl:-mb-[400px] -mr-[702px] md:-mr-[540px] xl:-mr-[345px]">
-          <div
-            ref={cardRef}
-            className="w-[1080px] h-[1080px] bg-gradient-to-br from-green-600 to-green-700 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col justify-between"
-            style={{ padding: '60px' }}
-          >
-            {/* Pitch lines */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
-              <div className="absolute top-1/2 left-1/2 w-40 h-40 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
-            </div>
-
-            {/* Fantasy Branding at Top */}
-            <div className="absolute top-8 left-1/2 -translate-x-1/2 text-center z-10">
-              <div className="text-5xl font-black text-white/90 mb-1">⚽ Fantasy</div>
-              <div className="text-2xl font-bold text-white/70">@FPL_Dave_</div>
-            </div>
-
-            {/* Header */}
-            <div className="text-center relative z-10 mt-20">
-              <div className="text-7xl font-black text-white mb-2">{teamName}</div>
-              <div className="text-3xl text-green-100 font-medium">Gameweek {gameweek} • {formation}</div>
-            </div>
-
-            {/* Formation */}
-            <div className="space-y-12 relative z-10 flex-1 flex flex-col justify-center">
-              {/* Forwards */}
-              <div className="flex justify-center gap-12">
-                {positionPlayers[3]?.map((player, idx) => (
-                  <div key={idx} className="text-center">
-                    <div className={`w-28 h-28 ${positionColors[3].bg} border-4 ${positionColors[3].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
-                      {player.image ? (
-                        <img 
-                          src={player.image} 
-                          alt={player.name} 
-                          className="w-full h-full object-cover"
-                          style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
-                        />
-                      ) : (
-                        player.name.substring(0, 3).toUpperCase()
-                      )}
-                    </div>
-                    <div className={`text-white text-xl font-bold ${positionColors[3].label} px-4 py-2 rounded-full`}>{player.name}</div>
-                  </div>
-                ))}
+      <div className="overflow-x-auto pb-4">
+        <div className="min-w-[400px] sm:min-w-0">
+          <div className="w-[1080px] h-[1080px] scale-[0.32] sm:scale-[0.45] md:scale-[0.50] lg:scale-[0.60] xl:scale-[0.68] transition-all duration-500 origin-top-left -mb-[735px] sm:-mb-[595px] md:-mb-[540px] lg:-mb-[432px] xl:-mb-[345px] -mr-[735px] sm:-mr-[594px] md:-mr-[540px] lg:-mr-[432px] xl:-mr-[345px]">
+            <div
+              ref={cardRef}
+              className="w-[1080px] h-[1080px] bg-gradient-to-br from-green-600 to-green-700 rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col justify-between"
+              style={{ padding: '60px' }}
+            >
+              {/* Pitch lines */}
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-1/2 left-0 right-0 h-px bg-white" />
+                <div className="absolute top-1/2 left-1/2 w-40 h-40 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
               </div>
 
-              {/* Midfielders */}
-              <div className="flex justify-center gap-12">
-                {positionPlayers[2]?.map((player, idx) => (
-                  <div key={idx} className="text-center">
-                    <div className={`w-28 h-28 ${positionColors[2].bg} border-4 ${positionColors[2].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
-                      {player.image ? (
-                        <img 
-                          src={player.image} 
-                          alt={player.name} 
-                          className="w-full h-full object-cover"
-                          style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
-                        />
-                      ) : (
-                        player.name.substring(0, 3).toUpperCase()
-                      )}
-                    </div>
-                    <div className={`text-white text-xl font-bold ${positionColors[2].label} px-4 py-2 rounded-full`}>{player.name}</div>
-                  </div>
-                ))}
+              {/* Fantasy Branding at Top */}
+              <div className="absolute top-8 left-1/2 -translate-x-1/2 text-center z-10">
+                <div className="text-5xl font-black text-white/90 mb-1">⚽ Fantasy</div>
+                <div className="text-2xl font-bold text-white/70">@FPL_Dave_</div>
               </div>
 
-              {/* Defenders */}
-              <div className="flex justify-center gap-12">
-                {positionPlayers[1]?.map((player, idx) => (
-                  <div key={idx} className="text-center">
-                    <div className={`w-28 h-28 ${positionColors[1].bg} border-4 ${positionColors[1].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
-                      {player.image ? (
-                        <img 
-                          src={player.image} 
-                          alt={player.name} 
-                          className="w-full h-full object-cover"
-                          style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
-                        />
-                      ) : (
-                        player.name.substring(0, 3).toUpperCase()
-                      )}
-                    </div>
-                    <div className={`text-white text-xl font-bold ${positionColors[1].label} px-4 py-2 rounded-full`}>{player.name}</div>
-                  </div>
-                ))}
+              {/* Header */}
+              <div className="text-center relative z-10 mt-20">
+                <div className="text-7xl font-black text-white mb-2">{teamName}</div>
+                <div className="text-3xl text-green-100 font-medium">Gameweek {gameweek} • {formation}</div>
               </div>
 
-              {/* Goalkeeper */}
-              <div className="flex justify-center">
-                {positionPlayers[0]?.map((player, idx) => (
-                  <div key={idx} className="text-center">
-                    <div className={`w-28 h-28 ${positionColors[0].bg} border-4 ${positionColors[0].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
-                      {player.image ? (
-                        <img 
-                          src={player.image} 
-                          alt={player.name} 
-                          className="w-full h-full object-cover"
-                          style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
-                        />
-                      ) : (
-                        player.name.substring(0, 3).toUpperCase()
-                      )}
+              {/* Formation */}
+              <div className="space-y-12 relative z-10 flex-1 flex flex-col justify-center">
+                {/* Forwards */}
+                <div className="flex justify-center gap-12">
+                  {positionPlayers[3]?.map((player, idx) => (
+                    <div key={idx} className="text-center">
+                      <div className={`w-28 h-28 ${positionColors[3].bg} border-4 ${positionColors[3].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
+                        {player.image ? (
+                          <img 
+                            src={player.image} 
+                            alt={player.name} 
+                            className="w-full h-full object-cover"
+                            style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
+                          />
+                        ) : (
+                          player.name.substring(0, 3).toUpperCase()
+                        )}
+                      </div>
+                      <div className={`text-white text-xl font-bold ${positionColors[3].label} px-4 py-2 rounded-full`}>{player.name}</div>
                     </div>
-                    <div className={`text-white text-xl font-bold ${positionColors[0].label} px-4 py-2 rounded-full`}>{player.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
 
-            {/* Footer */}
-            <div className="text-center text-white/70 text-sm font-medium mt-8 relative z-10">
-              @FPL_Dave_ • FPL Analytics
+                {/* Midfielders */}
+                <div className="flex justify-center gap-12">
+                  {positionPlayers[2]?.map((player, idx) => (
+                    <div key={idx} className="text-center">
+                      <div className={`w-28 h-28 ${positionColors[2].bg} border-4 ${positionColors[2].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
+                        {player.image ? (
+                          <img 
+                            src={player.image} 
+                            alt={player.name} 
+                            className="w-full h-full object-cover"
+                            style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
+                          />
+                        ) : (
+                          player.name.substring(0, 3).toUpperCase()
+                        )}
+                      </div>
+                      <div className={`text-white text-xl font-bold ${positionColors[2].label} px-4 py-2 rounded-full`}>{player.name}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Defenders */}
+                <div className="flex justify-center gap-12">
+                  {positionPlayers[1]?.map((player, idx) => (
+                    <div key={idx} className="text-center">
+                      <div className={`w-28 h-28 ${positionColors[1].bg} border-4 ${positionColors[1].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
+                        {player.image ? (
+                          <img 
+                            src={player.image} 
+                            alt={player.name} 
+                            className="w-full h-full object-cover"
+                            style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
+                          />
+                        ) : (
+                          player.name.substring(0, 3).toUpperCase()
+                        )}
+                      </div>
+                      <div className={`text-white text-xl font-bold ${positionColors[1].label} px-4 py-2 rounded-full`}>{player.name}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Goalkeeper */}
+                <div className="flex justify-center">
+                  {positionPlayers[0]?.map((player, idx) => (
+                    <div key={idx} className="text-center">
+                      <div className={`w-28 h-28 ${positionColors[0].bg} border-4 ${positionColors[0].border} rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg mb-3 overflow-hidden`}>
+                        {player.image ? (
+                          <img 
+                            src={player.image} 
+                            alt={player.name} 
+                            className="w-full h-full object-cover"
+                            style={{ transform: `translate(${player.position.x}%, ${player.position.y}%) scale(${player.position.scale / 100})` }}
+                          />
+                        ) : (
+                          player.name.substring(0, 3).toUpperCase()
+                        )}
+                      </div>
+                      <div className={`text-white text-xl font-bold ${positionColors[0].label} px-4 py-2 rounded-full`}>{player.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="text-center text-white/70 text-sm font-medium mt-8 relative z-10">
+                @FPL_Dave_ • FPL Analytics
+              </div>
             </div>
           </div>
         </div>
@@ -305,12 +308,16 @@ export function TeamLineupBuilder({ players }: TeamLineupBuilderProps) {
       {/* Action Buttons */}
       <div className="flex gap-3">
         <Button 
-          onClick={exportAsImage}
-          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg py-6"
+          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg py-6 opacity-60 cursor-not-allowed"
+          disabled
         >
           <Download className="w-5 h-5 mr-2" />
-          Download Team Lineup
+          Download Team Lineup (Temporarily Disabled)
         </Button>
+      </div>
+      <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3">
+        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <p>Export functionality is temporarily disabled for maintenance. You can take a screenshot instead.</p>
       </div>
     </div>
   );

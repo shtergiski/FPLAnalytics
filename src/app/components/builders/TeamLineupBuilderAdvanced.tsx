@@ -162,19 +162,15 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
     try {
       // Fetch bootstrap data if not loaded
       if (!bootstrap) {
-        console.log('Loading bootstrap data first...');
         await fetchBootstrapData();
       }
 
       const managerId = Number(fplId);
       const targetGw = Number(gameweek);
-      
-      console.log(`Loading team for FPL ID: ${managerId}, Target GW: ${targetGw}`);
 
       // Fetch manager data
       const managerData = await FPLService.getManager(managerId);
       setTeamName(managerData.name);
-      console.log(`✅ Manager name: ${managerData.name}`);
 
       // Try current GW, then GW-1, then GW-2 (in case current GW hasn't started)
       let picksData: any = null;
@@ -182,17 +178,14 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       
       for (const gwTry of [targetGw, targetGw - 1, targetGw - 2].filter(g => g > 0)) {
         try {
-          console.log(`Trying to load picks for GW${gwTry}...`);
           const res = await FPLService.getManagerTeam(managerId, gwTry);
           
           if (res?.picks?.length) {
             picksData = res;
             actualGw = gwTry;
-            console.log(`✅ Found ${res.picks.length} picks for GW${gwTry}`);
             break;
           }
         } catch (err) {
-          console.log(`No picks found for GW${gwTry}, trying earlier gameweek...`);
           continue;
         }
       }
@@ -204,7 +197,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       // Update gameweek to actual GW found
       if (actualGw !== targetGw) {
         setGameweek(String(actualGw));
-        console.log(`📌 Using GW${actualGw} instead of GW${targetGw} (current GW may not have started)`);
       }
 
       // Sort picks by position field (FPL orders: GK→DEF→MID→FWD→bench)
@@ -213,10 +205,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       // Map picks to squad with player data from already-loaded players array
       const newSquad: SquadPlayer[] = sortedPicks.map((pick: any) => {
         const player = players.find(p => p.id === pick.element);
-        
-        if (!player) {
-          console.warn(`⚠️ Player ${pick.element} not found in bootstrap data`);
-        }
         
         return {
           id: pick.element,
@@ -238,7 +226,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       setFormation(newFormation);
 
       setError('');
-      console.log(`✅ Successfully loaded ${newSquad.length} players for ${managerData.name} (GW${actualGw})`);
       
       // Show success message if we used a fallback GW
       if (actualGw !== targetGw) {
@@ -248,8 +235,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       // Mark that an official FPL team was loaded
       setIsFPLTeamLoaded(true);
     } catch (err: any) {
-      console.error('Failed to load FPL team:', err);
-      
       // Show user-friendly error
       if (err.message?.includes('CORS proxies failed')) {
         setError('⚠️ FPL API temporarily unavailable. The proxies that bypass CORS restrictions are currently blocked or down. Please try again later, or use the manual squad builder below.');
@@ -294,9 +279,8 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
   const exportAsImage = async () => {
     if (!cardRef.current) return;
     try {
-      await ExportService.exportCard(cardRef.current, `${teamName.replace(/\s/g, '_')}_GW${gameweek}`);
+      await ExportService.exportCard(cardRef.current, `${teamName.replace(/\\s/g, '_')}_GW${gameweek}`);
     } catch (error) {
-      console.error('Failed to export:', error);
       setError('❌ Export failed. Please try again or use browser screenshot.');
     }
   };
@@ -686,12 +670,16 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       {/* Action Buttons */}
       <div className="flex gap-3">
         <Button 
-          onClick={exportAsImage}
-          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg py-6"
+          className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-lg py-6 opacity-60 cursor-not-allowed"
+          disabled
         >
           <Download className="w-5 h-5 mr-2" />
-          Download Team Lineup
+          Download Team Lineup (Temporarily Disabled)
         </Button>
+      </div>
+      <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-3">
+        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <p>Export functionality is temporarily disabled for maintenance. You can take a screenshot instead.</p>
       </div>
     </div>
   );

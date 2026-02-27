@@ -124,7 +124,7 @@ export function CreatorHub({ players }: CreatorHubProps) {
           return (
             <Card
               key={builder.id}
-              className={`p-6 cursor-pointer transition-all hover:scale-105 min-h-[200px] flex flex-col ${
+              className={`p-6 cursor-pointer transition-all hover:scale-105 min-h-[200px] flex flex-col bg-white shadow-md ${
                 isActive 
                   ? 'ring-2 ring-purple-500 shadow-lg' 
                   : 'hover:shadow-lg'

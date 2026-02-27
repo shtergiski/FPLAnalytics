@@ -179,16 +179,64 @@ export async function exportCard(
   try {
     console.log('🎨 Starting export...');
     
+    // Create a semi-transparent overlay to block interaction
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.zIndex = '99998';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.innerHTML = '<div style="color: white; font-size: 20px; font-weight: bold;">Generating image...</div>';
+    document.body.appendChild(overlay);
+    
+    // Position element properly for capture (absolute positioning, fully visible)
+    const originalPosition = element.style.position;
+    const originalLeft = element.style.left;
+    const originalTop = element.style.top;
+    const originalZIndex = element.style.zIndex;
+    const originalVisibility = element.style.visibility;
+    
+    // Position at top-left with no transforms
+    element.style.position = 'absolute';
+    element.style.left = '0';
+    element.style.top = '0';
+    element.style.zIndex = '99999';
+    element.style.visibility = 'visible';
+    
+    // Wait for layout to settle
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
     // Step 1: Convert all images to base64 data URLs
     await convertImages(element);
+    
+    // Wait for images to be processed
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Step 2: Export to PNG at 3x resolution
     console.log('📸 Capturing element...');
     const dataUrl = await toPng(element, {
       quality: 1.0,
-      pixelRatio: 3, // 3x resolution for high quality
+      pixelRatio: 3,
       cacheBust: true,
+      backgroundColor: '#ffffff',
+      width: element.offsetWidth,
+      height: element.offsetHeight,
     });
+    
+    // Restore original styles
+    element.style.position = originalPosition;
+    element.style.left = originalLeft;
+    element.style.top = originalTop;
+    element.style.zIndex = originalZIndex;
+    element.style.visibility = originalVisibility;
+    
+    // Remove overlay
+    document.body.removeChild(overlay);
     
     // Step 3: Download
     console.log('💾 Downloading...');

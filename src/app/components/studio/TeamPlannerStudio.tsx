@@ -7,7 +7,6 @@ import { Player } from '../../types/fpl';
 import { useFPLStore } from '../../store/fpl-store';
 import { FPLService } from '../../utils/corsProxy';
 import { ExportService } from '../../utils/exportService';
-import pitchGraphic from '../../../assets/pitch-graphic.png';
 
 interface SquadPlayer {
   id: number;
@@ -40,7 +39,7 @@ const FORMATIONS: Record<Formation, { def: number; mid: number; fwd: number }> =
 
 export function TeamPlannerStudio() {
   const { bootstrap, fetchBootstrapData } = useFPLStore();
-
+  
   // State
   const [players, setPlayers] = useState<Player[]>([]);
   const [startingXI, setStartingXI] = useState<(SquadPlayer | null)[]>(Array(11).fill(null));
@@ -75,17 +74,17 @@ export function TeamPlannerStudio() {
   // Auto-detect formation based on starting XI
   useEffect(() => {
     const startingPlayers = startingXI.filter(p => p !== null) as SquadPlayer[];
-
+    
     // Skip GKP in position 0
     const outfieldPlayers = startingPlayers.slice(1);
-
+    
     if (outfieldPlayers.length >= 10) {
       const defCount = outfieldPlayers.filter(p => p.position === 'DEF').length;
       const midCount = outfieldPlayers.filter(p => p.position === 'MID').length;
       const fwdCount = outfieldPlayers.filter(p => p.position === 'FWD').length;
-
+      
       const detectedFormation = `${defCount}-${midCount}-${fwdCount}` as Formation;
-
+      
       // Check if it's a valid formation
       if (FORMATIONS[detectedFormation]) {
         setFormation(detectedFormation);
@@ -96,24 +95,24 @@ export function TeamPlannerStudio() {
   // Load FPL Team
   const loadFPLTeam = async () => {
     if (!fplId) return;
-
+    
     setLoading(true);
     try {
       const teamData = await FPLService.getEntry(parseInt(fplId));
       const picksData = await FPLService.getEntryPicks(parseInt(fplId), 27);
-
+      
       setTeamName(teamData.name);
-
+      
       const starting: (SquadPlayer | null)[] = Array(11).fill(null);
       const benchPlayers: (SquadPlayer | null)[] = Array(4).fill(null);
-
+      
       picksData.picks.forEach((pick: any) => {
         const player = players.find(p => p.id === pick.element);
         if (!player) return;
-
+        
         const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' } as const;
         const teamData = bootstrap?.teams?.find(t => t.id === player.team);
-
+        
         const squadPlayer: SquadPlayer = {
           id: player.id,
           webName: player.web_name,
@@ -130,23 +129,23 @@ export function TeamPlannerStudio() {
           teamName: teamData?.name || '',
           teamShortName: teamData?.short_name || '',
         };
-
+        
         if (pick.position <= 11) {
           starting[pick.position - 1] = squadPlayer;
         } else {
           benchPlayers[pick.position - 12] = squadPlayer;
         }
-
+        
         if (pick.is_captain) setCaptain(squadPlayer.id);
         if (pick.is_vice_captain) setViceCaptain(squadPlayer.id);
       });
-
+      
       setStartingXI(starting);
       setBench(benchPlayers);
       setIsFPLTeamLoaded(true);
-
+      
     } catch (error) {
-      console.error('Failed to load FPL team:', error);
+      // Error handled silently
     } finally {
       setLoading(false);
     }
@@ -173,22 +172,22 @@ export function TeamPlannerStudio() {
   // FPL Transfer Rules validation
   const validateTransfer = (playerIn: Player, playerOut: SquadPlayer) => {
     const errors: string[] = [];
-
+    
     // Check budget
     const priceDiff = playerIn.now_cost - playerOut.now_cost;
     const budgetAfterTransfer = remainingBudget - (priceDiff / 10);
     if (budgetAfterTransfer < 0) {
       errors.push(`Insufficient budget. Need £${Math.abs(budgetAfterTransfer).toFixed(1)}m more.`);
     }
-
+    
     // Check squad composition after transfer
     const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
     const playerInPosition = posMap[playerIn.element_type as keyof typeof posMap] as 'GKP' | 'DEF' | 'MID' | 'FWD';
-
+    
     const newComposition = { ...squadComposition };
     newComposition[playerOut.position]--;
     newComposition[playerInPosition]++;
-
+    
     // Squad must have: 2 GKP, 5 DEF, 5 MID, 3 FWD
     const requiredComposition = { GKP: 2, DEF: 5, MID: 5, FWD: 3 };
     if (newComposition.GKP !== requiredComposition.GKP) {
@@ -203,35 +202,35 @@ export function TeamPlannerStudio() {
     if (newComposition.FWD !== requiredComposition.FWD) {
       errors.push(`Squad must have exactly 3 Forwards.`);
     }
-
+    
     // Check max 3 players from same team
     const newTeamCounts = { ...teamCounts };
     if (playerOut.teamId) newTeamCounts[playerOut.teamId]--;
     newTeamCounts[playerIn.team] = (newTeamCounts[playerIn.team] || 0) + 1;
-
+    
     if (newTeamCounts[playerIn.team] > 3) {
       const teamData = bootstrap?.teams?.find(t => t.id === playerIn.team);
       errors.push(`Maximum 3 players from ${teamData?.name || 'same team'}.`);
     }
-
+    
     return errors;
   };
 
   // Filter players for transfer mode
   const filteredPlayers = players.filter(player => {
     const matchesSearch = player.web_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      player.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      player.second_name.toLowerCase().includes(searchQuery.toLowerCase());
-
+                         player.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         player.second_name.toLowerCase().includes(searchQuery.toLowerCase());
+    
     let matchesPosition = true;
     if (positionFilter !== 'ALL') {
       const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
       matchesPosition = posMap[player.element_type as keyof typeof posMap] === positionFilter;
     }
-
+    
     // TRANSFER MODE: Show validation but don't filter
     // Users can see all players and get feedback on why transfer isn't allowed
-
+    
     return matchesSearch && matchesPosition;
   }).slice(0, 120).sort((a, b) => b.total_points - a.total_points);
 
@@ -243,10 +242,10 @@ export function TeamPlannerStudio() {
   // Add player to selected slot
   const addPlayerToSlot = (player: Player) => {
     if (!selectedSlot) return;
-
+    
     const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' } as const;
     const teamData = bootstrap?.teams?.find(t => t.id === player.team);
-
+    
     const squadPlayer: SquadPlayer = {
       id: player.id,
       webName: player.web_name,
@@ -263,7 +262,7 @@ export function TeamPlannerStudio() {
       teamName: teamData?.name || '',
       teamShortName: teamData?.short_name || '',
     };
-
+    
     if (selectedSlot.type === 'starting') {
       const newStarting = [...startingXI];
       newStarting[selectedSlot.index] = squadPlayer;
@@ -273,24 +272,24 @@ export function TeamPlannerStudio() {
       newBench[selectedSlot.index] = squadPlayer;
       setBench(newBench);
     }
-
+    
     setSelectedSlot(null);
   };
 
   // Transfer player
   const handleTransferIn = (player: Player) => {
     if (!transferOut) return;
-
+    
     // Validate transfer
     const errors = validateTransfer(player, transferOut);
     if (errors.length > 0) {
       alert('Transfer not allowed:\n\n' + errors.join('\n'));
       return;
     }
-
+    
     const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' } as const;
     const teamData = bootstrap?.teams?.find(t => t.id === player.team);
-
+    
     const squadPlayer: SquadPlayer = {
       id: player.id,
       webName: player.web_name,
@@ -307,7 +306,7 @@ export function TeamPlannerStudio() {
       teamName: teamData?.name || '',
       teamShortName: teamData?.short_name || '',
     };
-
+    
     // Replace in starting XI or bench
     const startingIndex = startingXI.findIndex(p => p?.id === transferOut.id);
     if (startingIndex !== -1) {
@@ -322,7 +321,7 @@ export function TeamPlannerStudio() {
         setBench(newBench);
       }
     }
-
+    
     setTransferOut(null);
     setTransferMode(false);
   };
@@ -346,7 +345,7 @@ export function TeamPlannerStudio() {
               onChange={(e) => setFplId(e.target.value)}
               className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
             />
-            <Button
+            <Button 
               onClick={loadFPLTeam}
               disabled={loading || !fplId}
               className="bg-white text-purple-600 hover:bg-gray-100"
@@ -425,7 +424,7 @@ export function TeamPlannerStudio() {
               </div>
             </div>
           )}
-
+          
           {/* Search */}
           <div className="relative mb-3 sm:mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
@@ -469,40 +468,41 @@ export function TeamPlannerStudio() {
                 </Button>
               </div>
             )}
-
+            
             {filteredPlayers.map(player => {
               const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
               const position = posMap[player.element_type as keyof typeof posMap] as 'GKP' | 'DEF' | 'MID' | 'FWD';
               const inSquad = isInSquad(player.id);
               const teamData = bootstrap?.teams?.find(t => t.id === player.team);
-
+              
               // Check if transfer is valid
               let transferErrors: string[] = [];
               if (transferMode && transferOut) {
                 transferErrors = validateTransfer(player, transferOut);
               }
               const transferInvalid = transferErrors.length > 0;
-
+              
               const positionColors = {
                 GKP: 'bg-yellow-500',
                 DEF: 'bg-blue-500',
                 MID: 'bg-green-500',
                 FWD: 'bg-red-500',
               };
-
+              
               return (
                 <div
                   key={player.id}
-                  className={`p-2 sm:p-3 rounded-lg border-2 transition-all ${inSquad
-                    ? 'bg-gray-100 border-gray-300 opacity-50 cursor-not-allowed'
-                    : transferMode && transferOut && transferInvalid
+                  className={`p-2 sm:p-3 rounded-lg border-2 transition-all ${
+                    inSquad 
+                      ? 'bg-gray-100 border-gray-300 opacity-50 cursor-not-allowed'
+                      : transferMode && transferOut && transferInvalid
                       ? 'bg-red-50 border-red-300 opacity-60 cursor-not-allowed'
                       : transferMode && transferOut
-                        ? 'border-green-200 hover:border-green-400 hover:bg-green-50 cursor-pointer'
-                        : selectedSlot
-                          ? 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 cursor-pointer'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                      ? 'border-green-200 hover:border-green-400 hover:bg-green-50 cursor-pointer'
+                      : selectedSlot
+                      ? 'border-purple-200 hover:border-purple-400 hover:bg-purple-50 cursor-pointer'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
                   onClick={() => {
                     if (inSquad) return;
                     if (transferMode && transferOut) {
@@ -550,7 +550,7 @@ export function TeamPlannerStudio() {
         <Card className="p-4 sm:p-6 lg:col-span-3 order-1 lg:order-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 sm:mb-4 gap-2">
             <h3 className="text-base sm:text-lg font-bold text-gray-900">Team Sheet</h3>
-
+            
             {/* Formation Selector - Disabled (auto-detected) */}
             <div className="flex items-center gap-2">
               <span className="text-xs sm:text-sm text-gray-600">Formation:</span>
@@ -560,10 +560,10 @@ export function TeamPlannerStudio() {
               <span className="text-[10px] sm:text-xs text-gray-500">(Auto-detected)</span>
             </div>
           </div>
-
+          
           {/* Football Pitch */}
           <div className="relative bg-gradient-to-b from-green-600 to-green-700 rounded-xl overflow-hidden min-h-[500px] sm:min-h-[600px] lg:min-h-[700px]" ref={pitchRef}>
-
+            
             {/* Fantasy Branding at Top */}
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center z-10">
               <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white/90 mb-0.5">⚽ Fantasy</div>
@@ -700,8 +700,8 @@ export function TeamPlannerStudio() {
 
           {/* Actions */}
           <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
               onClick={() => {
                 setStartingXI(Array(11).fill(null));
@@ -713,31 +713,24 @@ export function TeamPlannerStudio() {
               <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Clear Squad
             </Button>
-            <Button
+            <Button 
               variant="outline"
               className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
             >
               <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Save Team
             </Button>
-            <Button
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs sm:text-sm h-9 sm:h-10"
-              onClick={async () => {
-                // Use the hidden export pitch instead
-                const exportPitch = document.getElementById('export-pitch-hidden');
-                if (exportPitch) {
-                  try {
-                    await ExportService.exportCard(exportPitch as HTMLElement, `${teamName.replace(/\s/g, '_')}_team`);
-                  } catch (error) {
-                    console.error('Export failed:', error);
-                    alert('Export failed. Please try again or use browser screenshot.');
-                  }
-                }
-              }}
+            <Button 
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs sm:text-sm h-9 sm:h-10 opacity-60 cursor-not-allowed"
+              disabled
             >
               <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-              Export Image
+              Export Image (Temporarily Disabled)
             </Button>
+          </div>
+          <div className="mt-2 flex items-start gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <p>Export functionality is temporarily disabled for maintenance. You can take a screenshot instead.</p>
           </div>
         </Card>
       </div>
@@ -777,12 +770,12 @@ export function TeamPlannerStudio() {
             {/* Pitch with Players - Using actual PNG as image */}
             <div className="relative w-full h-full">
               {/* Pitch Background Image */}
-              <img
-                src={pitchGraphic}
-                alt="Football Pitch"
+              <img 
+                src="figma:asset/73e8daeb6c13cff4f94e71f4e938352195978926.png" 
+                alt="Football Pitch" 
                 className="absolute inset-0 w-full h-full object-cover"
               />
-
+              
               {/* Players positioned on top of pitch */}
               <div className="absolute inset-0 flex flex-col items-center gap-8 pt-4">
                 {/* Fantasy Branding */}
@@ -850,17 +843,17 @@ export function TeamPlannerStudio() {
 }
 
 // Pitch Player Slot Component - PLAYER PHOTOS
-function PitchPlayerSlot({
-  player,
-  onSelect,
+function PitchPlayerSlot({ 
+  player, 
+  onSelect, 
   onRemove,
   onTransferOut,
   isSelected,
   isCaptain,
   isViceCaptain,
   transferMode
-}: {
-  player: SquadPlayer | null;
+}: { 
+  player: SquadPlayer | null; 
   onSelect: () => void;
   onRemove: () => void;
   onTransferOut: (p: SquadPlayer) => void;
@@ -873,8 +866,9 @@ function PitchPlayerSlot({
     return (
       <button
         onClick={onSelect}
-        className={`w-20 h-20 rounded-full border-2 border-dashed ${isSelected ? 'border-purple-500 bg-purple-100' : 'border-white/40 hover:border-white/70'
-          } flex items-center justify-center transition-all group`}
+        className={`w-20 h-20 rounded-full border-2 border-dashed ${
+          isSelected ? 'border-purple-500 bg-purple-100' : 'border-white/40 hover:border-white/70'
+        } flex items-center justify-center transition-all group`}
       >
         <Plus className={`w-10 h-10 ${isSelected ? 'text-purple-600' : 'text-white/50 group-hover:text-white/90'}`} />
       </button>
@@ -894,11 +888,12 @@ function PitchPlayerSlot({
           V
         </div>
       )}
-
+      
       <button
         onClick={() => transferMode ? onTransferOut(player) : onRemove()}
-        className={`w-20 h-20 rounded-full bg-white border-4 ${transferMode ? 'border-amber-400 hover:border-amber-500' : 'border-white hover:border-red-400'
-          } overflow-hidden transition-all relative shadow-lg`}
+        className={`w-20 h-20 rounded-full bg-white border-4 ${
+          transferMode ? 'border-amber-400 hover:border-amber-500' : 'border-white hover:border-red-400'
+        } overflow-hidden transition-all relative shadow-lg`}
       >
         {/* PLAYER PHOTO */}
         <img
@@ -913,7 +908,7 @@ function PitchPlayerSlot({
           <X className="w-5 h-5 text-white" />
         </div>
       </button>
-
+      
       <div className="mt-2 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-lg min-w-[100px]">
         <div className="text-xs font-bold text-gray-900 text-center whitespace-nowrap">{player.webName}</div>
         <div className="text-[10px] text-gray-600 text-center">{player.teamShortName} • £{(player.now_cost / 10).toFixed(1)}m</div>
@@ -923,15 +918,15 @@ function PitchPlayerSlot({
 }
 
 // Bench Slot Component - PLAYER PHOTOS
-function BenchSlot({
-  player,
-  onSelect,
+function BenchSlot({ 
+  player, 
+  onSelect, 
   onRemove,
   onTransferOut,
   isSelected,
   transferMode
-}: {
-  player: SquadPlayer | null;
+}: { 
+  player: SquadPlayer | null; 
   onSelect: () => void;
   onRemove: () => void;
   onTransferOut: (p: SquadPlayer) => void;
@@ -942,8 +937,9 @@ function BenchSlot({
     return (
       <button
         onClick={onSelect}
-        className={`p-4 rounded-lg border-2 border-dashed ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-300 hover:bg-gray-50'
-          } flex flex-col items-center justify-center transition-all min-h-[120px]`}
+        className={`p-4 rounded-lg border-2 border-dashed ${
+          isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-300 hover:border-purple-300 hover:bg-gray-50'
+        } flex flex-col items-center justify-center transition-all min-h-[120px]`}
       >
         <Plus className={`w-6 h-6 mb-2 ${isSelected ? 'text-purple-600' : 'text-gray-400'}`} />
         <span className="text-xs text-gray-500">Add player</span>
@@ -953,8 +949,9 @@ function BenchSlot({
 
   return (
     <div
-      className={`p-3 rounded-lg border-2 ${transferMode ? 'border-amber-300 hover:border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-red-400 bg-gray-50'
-        } transition-all cursor-pointer group relative min-h-[120px]`}
+      className={`p-3 rounded-lg border-2 ${
+        transferMode ? 'border-amber-300 hover:border-amber-400 bg-amber-50' : 'border-gray-200 hover:border-red-400 bg-gray-50'
+      } transition-all cursor-pointer group relative min-h-[120px]`}
       onClick={() => transferMode ? onTransferOut(player) : onRemove()}
     >
       <div className="flex flex-col items-center">
@@ -973,8 +970,9 @@ function BenchSlot({
         <div className="text-[10px] text-gray-600 text-center">{player.teamShortName} • {player.position}</div>
         <div className="text-[10px] font-bold text-purple-600 mt-1">£{(player.now_cost / 10).toFixed(1)}m</div>
       </div>
-      <div className={`absolute inset-0 ${transferMode ? 'bg-amber-500/0 group-hover:bg-amber-500/10' : 'bg-red-500/0 group-hover:bg-red-500/10'
-        } rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
+      <div className={`absolute inset-0 ${
+        transferMode ? 'bg-amber-500/0 group-hover:bg-amber-500/10' : 'bg-red-500/0 group-hover:bg-red-500/10'
+      } rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity`}>
         <X className="w-5 h-5 text-red-600" />
       </div>
     </div>
@@ -982,14 +980,14 @@ function BenchSlot({
 }
 
 // Export Player Card Component - Matches your exact HTML structure
-function ExportPlayerCard({
-  player,
+function ExportPlayerCard({ 
+  player, 
   position,
   isCaptain = false,
   isViceCaptain = false,
   isBench = false
-}: {
-  player: SquadPlayer | null;
+}: { 
+  player: SquadPlayer | null; 
   position: string;
   isCaptain?: boolean;
   isViceCaptain?: boolean;
@@ -1012,7 +1010,7 @@ function ExportPlayerCard({
       <div className="rounded-t-md">
         <div className="relative w-36 h-32 rounded-t-md">
           <div className="absolute inset-x-0 -top-4 h-36 overflow-hidden pt-1">
-            <img
+            <img 
               alt={player?.webName || 'Photo-Missing'}
               loading="lazy"
               width="565"
@@ -1034,11 +1032,11 @@ function ExportPlayerCard({
           </div>
         </div>
       </div>
-
+      
       <h1 className="bg-[#9146FF] text-white text-xl py-1 font-semibold w-full text-center truncate">
         {player ? player.webName : `Add ${position}`}
       </h1>
-
+      
       <p className="text-[#423488] bg-white/60 backdrop-blur-sm rounded-b-lg w-full text-center text-xl py-1 font-bold truncate">
         £{player ? (player.now_cost / 10).toFixed(1) : '14.5'} | {player ? player.selected_by_percent : '25.5'}%
       </p>

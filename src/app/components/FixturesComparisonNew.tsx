@@ -3,7 +3,7 @@ import { X, Search, Download } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
-import { ExportService } from '../utils/exportService';
+import { toPng } from 'html-to-image';
 import type { Player, PlayerFixture, Team, Fixture } from '../types/fpl';
 
 interface FixturesComparisonNewProps {
@@ -16,7 +16,7 @@ interface FixturesComparisonNewProps {
 const getDifficultyColor = (difficulty: number): string => {
   switch (difficulty) {
     case 1:
-      return 'bg-[#01FC7C] text-gray-900'; // Dark Green
+      return 'bg-[#375523] text-white'; // Dark Green - Official FPL
     case 2:
       return 'bg-[#00FF87] text-gray-900'; // Light Green
     case 3:
@@ -49,7 +49,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
   const [searchQuery, setSearchQuery] = useState('');
   const [showSelectionModal, setShowSelectionModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const comparisonRef = useRef<HTMLDivElement>(null);
+  const exportCardRef = useRef<HTMLDivElement>(null);
 
   const maxSelection = 2;
 
@@ -58,7 +58,6 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
     const upcomingFixtures = fixtures
       .filter(f => !f.finished && (f.team_h === teamId || f.team_a === teamId))
       .sort((a, b) => {
-        // Sort by event number, handling null events
         const aEvent = a.event ?? 999;
         const bEvent = b.event ?? 999;
         return aEvent - bEvent;
@@ -150,29 +149,28 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
     return positions[elementType] || '';
   };
 
-  const handleDownloadPlayers = async () => {
-    if (!comparisonRef.current) return;
+  const handleDownload = async () => {
+    if (!exportCardRef.current) return;
     setIsDownloading(true);
+    
     try {
-      const fileName = `fixtures-comparison-${selectedPlayers[0]?.web_name}-vs-${selectedPlayers[1]?.web_name}`;
-      await ExportService.exportCard(comparisonRef.current, fileName);
+      const dataUrl = await toPng(exportCardRef.current, {
+        quality: 1.0,
+        pixelRatio: 3,
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+      });
+      
+      const link = document.createElement('a');
+      const fileName = activeTab === 'players' 
+        ? `fpldave-fixtures-comparison-${selectedPlayers.map(p => p.web_name).join('-vs-')}`
+        : `fpldave-fixtures-comparison-${selectedTeams.map(t => t.short_name).join('-vs-')}`;
+      link.download = `${fileName}.png`;
+      link.href = dataUrl;
+      link.click();
     } catch (error) {
-      console.error('Error downloading image:', error);
-      alert('Failed to download image. Please try again.');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleDownloadTeams = async () => {
-    if (!comparisonRef.current) return;
-    setIsDownloading(true);
-    try {
-      const fileName = `fixtures-comparison-${selectedTeams[0]?.short_name}-vs-${selectedTeams[1]?.short_name}`;
-      await ExportService.exportCard(comparisonRef.current, fileName);
-    } catch (error) {
-      console.error('Error downloading image:', error);
-      alert('Failed to download image. Please try again.');
+      console.error('Failed to export:', error);
+      alert('Failed to export image. Please try again.');
     } finally {
       setIsDownloading(false);
     }
@@ -226,7 +224,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
       {activeTab === 'players' && (
         <>
           {/* Selected Players Bar */}
-          <Card className="p-4">
+          <Card className="p-4 bg-white shadow-md">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <h3 className="font-bold text-gray-900 text-sm sm:text-base">Selected Players ({selectedPlayers.length}/2)</h3>
               <Button
@@ -289,243 +287,158 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
             )}
           </Card>
 
-          {/* Player Fixtures Comparison */}
+          {/* Export Card - Player Comparison - ALWAYS VISIBLE */}
           {selectedPlayers.length === 2 && (
             <>
-              {/* VISIBLE Comparison - Mobile Friendly (stacks on mobile) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {selectedPlayers.map((player) => {
-                  const fixtures = getPlayerFixtures(player.id, 8);
-                  const relevantFixtures = fixtures.slice(0, 8);
-                  const avgFDR = relevantFixtures.length > 0
-                    ? (relevantFixtures.reduce((sum, f) => sum + (f.difficulty || 0), 0) / relevantFixtures.length).toFixed(2)
-                    : 'N/A';
+              <div className="space-y-6">
+                {/* Image Upload Info */}
+                <Card className="p-4 sm:p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
+                  <div className="text-center">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">📸 Ready to Export</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                      The comparison card below will be exported as a high-quality image
+                    </p>
+                    <Button
+                      onClick={handleDownload}
+                      size="lg"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
+                      disabled={isDownloading}
+                    >
+                      <Download className="w-5 h-5 mr-2" />
+                      {isDownloading ? 'Exporting...' : 'Download Comparison Image'}
+                    </Button>
+                  </div>
+                </Card>
 
-                  return (
-                    <Card key={player.id} className="p-4 sm:p-6 bg-white">
-                      {/* Player Header */}
-                      <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-gray-100">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                          <img
-                            src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
-                            alt={player.web_name}
-                            crossOrigin="anonymous"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) {
-                                parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-3xl font-black leading-none mb-1">${player.web_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div><div class="text-xs font-bold opacity-80">${getPositionName(player.element_type)}</div></div>`;
-                              }
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-                            {player.web_name}
-                          </div>
-                          <div className="text-sm text-gray-600 truncate mb-2">
-                            {player.team_name} • {getPositionName(player.element_type)}
-                          </div>
-                          <div className="flex gap-2 flex-wrap">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-                              £{(player.now_cost / 10).toFixed(1)}m
-                            </span>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                              {player.total_points} pts
-                            </span>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                              {player.form} form
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                {/* EXPORTABLE CARD - VISIBLE */}
+                <div className="overflow-x-auto">
+                  <div 
+                    ref={exportCardRef}
+                    className="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-600 rounded-2xl shadow-2xl"
+                    style={{ padding: '16px' }}
+                  >
+                    {/* Header */}
+                    <div className="text-center mb-4 sm:mb-8">
+                      <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">
+                        PLAYER FIXTURES COMPARISON
+                      </h2>
+                      <p className="text-purple-100 text-xs sm:text-sm">Gameweek Analysis • Season 2024/25</p>
+                    </div>
 
-                      {/* Stats Row */}
-                      <div className="grid grid-cols-3 gap-2 mb-4">
-                        <div className="text-center p-2 bg-gray-50 rounded-lg">
-                          <div className="text-xs text-gray-600 mb-1">Ownership</div>
-                          <div className="text-sm font-bold text-gray-900">{player.selected_by_percent}%</div>
-                        </div>
-                        <div className="text-center p-2 bg-purple-50 rounded-lg">
-                          <div className="text-xs text-gray-600 mb-1">Avg FDR</div>
-                          <div className="text-sm font-bold text-purple-600">{avgFDR}</div>
-                        </div>
-                        <div className="text-center p-2 bg-blue-50 rounded-lg">
-                          <div className="text-xs text-gray-600 mb-1">Fixtures</div>
-                          <div className="text-sm font-bold text-blue-600">{relevantFixtures.length}</div>
-                        </div>
-                      </div>
+                    {/* Two Players Side by Side */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+                      {selectedPlayers.map((player) => {
+                        const fixtures = getPlayerFixtures(player.id, 8).slice(0, 8);
+                        const avgFDR = fixtures.length > 0
+                          ? (fixtures.reduce((sum, f) => sum + (f.difficulty || 0), 0) / fixtures.length).toFixed(2)
+                          : 'N/A';
 
-                      {/* Fixtures List */}
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 mb-3">Next 8 Fixtures</h4>
-                        <div className="space-y-2">
-                          {relevantFixtures.map((fixture, idx) => (
-                            <div
-                              key={idx}
-                              className={`${getDifficultyColor(fixture.difficulty || 0)} rounded-lg py-3 px-4 shadow-sm`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="text-xs font-medium opacity-75 mb-0.5">
-                                    GW {fixture.gameweek}
-                                  </div>
-                                  <div className="text-base sm:text-lg font-bold">
-                                    {fixture.opponent}
-                                  </div>
+                        return (
+                          <div key={player.id} className="bg-white rounded-xl p-3 sm:p-6 shadow-xl">
+                            {/* Player Header */}
+                            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
+                              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <img
+                                  src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                                  alt={player.web_name}
+                                  crossOrigin="anonymous"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-2xl sm:text-3xl font-black leading-none mb-1">${player.web_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div><div class="text-xs font-bold opacity-80">${getPositionName(player.element_type)}</div></div>`;
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-lg sm:text-xl lg:text-2xl font-black text-gray-900 truncate">
+                                  {player.web_name}
                                 </div>
-                                <div className="text-right">
-                                  <div className="text-2xl font-black opacity-90">
-                                    {fixture.isHome ? 'H' : 'A'}
-                                  </div>
+                                <div className="text-xs sm:text-sm text-gray-600 truncate mb-1 sm:mb-2">
+                                  {player.team_name} • {getPositionName(player.element_type)}
+                                </div>
+                                <div className="flex gap-1 sm:gap-2 flex-wrap">
+                                  <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
+                                    £{(player.now_cost / 10).toFixed(1)}m
+                                  </span>
+                                  <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                                    {player.total_points} pts
+                                  </span>
+                                  <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                                    {player.form} form
+                                  </span>
                                 </div>
                               </div>
                             </div>
-                          ))}
-                          {relevantFixtures.length === 0 && (
-                            <div className="text-center py-8 bg-gray-50 rounded-lg">
-                              <p className="text-sm text-gray-600">No fixtures available</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
 
-              {/* HIDDEN Export Version - Always Side by Side */}
-              <div ref={comparisonRef} className="absolute -left-[9999px] bg-white p-6 rounded-xl" style={{ width: '1200px' }}>
-                {/* Header */}
-                <div className="text-center mb-6 pb-4 border-b-2 border-purple-200">
-                  <h2 className="text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                    PLAYER FIXTURES COMPARISON
-                  </h2>
-                  <p className="text-sm text-gray-600">Gameweek Analysis • Season 2024/25</p>
-                </div>
-
-                {/* Players Side by Side - ALWAYS 2 columns for export */}
-                <div className="grid grid-cols-2 gap-6">
-                  {selectedPlayers.map((player) => {
-                    const fixtures = getPlayerFixtures(player.id, 8);
-                    const relevantFixtures = fixtures.slice(0, 8);
-                    const avgFDR = relevantFixtures.length > 0
-                      ? (relevantFixtures.reduce((sum, f) => sum + (f.difficulty || 0), 0) / relevantFixtures.length).toFixed(2)
-                      : 'N/A';
-
-                    return (
-                      <Card key={player.id} className="p-6 bg-white">
-                        {/* Player Header */}
-                        <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-gray-100">
-                          <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                            <img
-                              src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
-                              alt={player.web_name}
-                              crossOrigin="anonymous"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-3xl font-black leading-none mb-1">${player.web_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div><div class="text-xs font-bold opacity-80">${getPositionName(player.element_type)}</div></div>`;
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-2xl font-bold text-gray-900 truncate">
-                              {player.web_name}
+                            {/* Stats Row */}
+                            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+                              <div className="text-center p-1.5 sm:p-2 bg-gray-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-0.5 sm:mb-1">Ownership</div>
+                                <div className="text-xs sm:text-sm font-bold text-gray-900">{player.selected_by_percent}%</div>
+                              </div>
+                              <div className="text-center p-1.5 sm:p-2 bg-purple-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-0.5 sm:mb-1">Avg FDR</div>
+                                <div className="text-xs sm:text-sm font-bold text-purple-600">{avgFDR}</div>
+                              </div>
+                              <div className="text-center p-1.5 sm:p-2 bg-blue-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-0.5 sm:mb-1">Fixtures</div>
+                                <div className="text-xs sm:text-sm font-bold text-blue-600">{fixtures.length}</div>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600 truncate mb-2">
-                              {player.team_name} • {getPositionName(player.element_type)}
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-                                £{(player.now_cost / 10).toFixed(1)}m
-                              </span>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                                {player.total_points} pts
-                              </span>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                {player.form} form
-                              </span>
+
+                            {/* Fixtures List */}
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-bold text-gray-900 mb-2 sm:mb-3">Next 8 Fixtures</h4>
+                              <div className="space-y-1.5 sm:space-y-2">
+                                {fixtures.map((fixture, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`${getDifficultyColor(fixture.difficulty || 0)} rounded-lg py-2 sm:py-3 px-2 sm:px-4 shadow-sm`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="text-xs font-medium opacity-75 mb-0.5">
+                                          GW {fixture.gameweek}
+                                        </div>
+                                        <div className="text-sm sm:text-base lg:text-lg font-bold">
+                                          {fixture.opponent}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-xl sm:text-2xl font-black opacity-90">
+                                          {fixture.isHome ? 'H' : 'A'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                                {fixtures.length === 0 && (
+                                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                                    <p className="text-xs sm:text-sm text-gray-600">No fixtures available</p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        );
+                      })}
+                    </div>
 
-                        {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                          <div className="text-center p-2 bg-gray-50 rounded-lg">
-                            <div className="text-xs text-gray-600 mb-1">Ownership</div>
-                            <div className="text-sm font-bold text-gray-900">{player.selected_by_percent}%</div>
-                          </div>
-                          <div className="text-center p-2 bg-purple-50 rounded-lg">
-                            <div className="text-xs text-gray-600 mb-1">Avg FDR</div>
-                            <div className="text-sm font-bold text-purple-600">{avgFDR}</div>
-                          </div>
-                          <div className="text-center p-2 bg-blue-50 rounded-lg">
-                            <div className="text-xs text-gray-600 mb-1">Fixtures</div>
-                            <div className="text-sm font-bold text-blue-600">{relevantFixtures.length}</div>
-                          </div>
-                        </div>
-
-                        {/* Fixtures List */}
+                    {/* Brand Watermark Footer */}
+                    <div className="flex items-center justify-center pt-4 sm:pt-8 mt-4 sm:mt-8 border-t-2 border-white/20">
+                      <div className="flex items-center gap-2 sm:gap-3 bg-white rounded-full px-4 sm:px-6 py-2 sm:py-3 shadow-lg">
+                        <div className="text-2xl sm:text-3xl">⚽</div>
                         <div>
-                          <h4 className="text-sm font-bold text-gray-900 mb-3">Next 8 Fixtures</h4>
-                          <div className="space-y-2">
-                            {relevantFixtures.map((fixture, idx) => (
-                              <div
-                                key={idx}
-                                className={`${getDifficultyColor(fixture.difficulty || 0)} rounded-lg py-3 px-4 shadow-sm`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <div className="text-xs font-medium opacity-75 mb-0.5">
-                                      GW {fixture.gameweek}
-                                    </div>
-                                    <div className="text-lg font-bold">
-                                      {fixture.opponent}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-2xl font-black opacity-90">
-                                      {fixture.isHome ? 'H' : 'A'}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                          <div className="font-black text-purple-600 text-base sm:text-lg leading-tight">@FPL_Dave_</div>
+                          <div className="text-xs text-gray-600 leading-tight">FPL Analytics Pro</div>
                         </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* Brand Watermark Footer */}
-                <div className="flex items-center justify-center pt-6 mt-6 border-t-2 border-purple-200">
-                  <div className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full px-6 py-3 shadow-lg">
-                    <div className="text-3xl">⚽</div>
-                    <div>
-                      <div className="font-black text-white text-lg leading-tight">@FPL_Dave_</div>
-                      <div className="text-xs text-white/90 leading-tight">FPL Analytics Pro</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Download Button */}
-              <div className="text-center">
-                <Button
-                  onClick={handleDownloadPlayers}
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
-                  disabled={isDownloading}
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  {isDownloading ? 'Downloading...' : 'Download Comparison'}
-                </Button>
               </div>
             </>
           )}
@@ -536,7 +449,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
       {activeTab === 'teams' && (
         <>
           {/* Selected Teams Bar */}
-          <Card className="p-4">
+          <Card className="p-4 bg-white shadow-md">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <h3 className="font-bold text-gray-900 text-sm sm:text-base">Selected Teams ({selectedTeams.length}/2)</h3>
               <Button
@@ -599,144 +512,155 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
             )}
           </Card>
 
-          {/* Team Fixtures Comparison */}
+          {/* Export Card - Team Comparison - ALWAYS VISIBLE */}
           {selectedTeams.length === 2 && (
             <>
-              <div ref={comparisonRef} className="bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 rounded-2xl p-6 space-y-6">
-                {/* Export Header */}
-                <div className="text-center pb-4 border-b-2 border-purple-200">
-                  <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2">
-                    TEAM FIXTURES COMPARISON
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    Gameweek Analysis • Season 2025/26
-                  </p>
-                </div>
+              <div className="space-y-6">
+                {/* Export Button */}
+                <Card className="p-4 sm:p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
+                  <div className="text-center">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">📸 Ready to Export</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-4">
+                      The comparison card below will be exported as a high-quality image
+                    </p>
+                    <Button
+                      onClick={handleDownload}
+                      size="lg"
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
+                      disabled={isDownloading}
+                    >
+                      <Download className="w-5 h-5 mr-2" />
+                      {isDownloading ? 'Exporting...' : 'Download Comparison Image'}
+                    </Button>
+                  </div>
+                </Card>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {selectedTeams.map((team) => {
-                    const teamFixtures = getTeamFixtures(team.id, 8);
-                    const avgFDR = teamFixtures.length > 0
-                      ? (teamFixtures.reduce((sum, f) => sum + f.difficulty, 0) / teamFixtures.length).toFixed(2)
-                      : 'N/A';
+                {/* EXPORTABLE CARD - VISIBLE */}
+                <div className="overflow-x-auto">
+                  <div 
+                    ref={exportCardRef}
+                    className="bg-gradient-to-br from-purple-600 via-purple-500 to-purple-600 rounded-2xl shadow-2xl"
+                    style={{ padding: '16px' }}
+                  >
+                    {/* Header */}
+                    <div className="text-center mb-4 sm:mb-8">
+                      <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-white mb-1 sm:mb-2 drop-shadow-lg">
+                        TEAM FIXTURES COMPARISON
+                      </h2>
+                      <p className="text-purple-100 text-xs sm:text-sm">Gameweek Analysis • Season 2024/25</p>
+                    </div>
 
-                    return (
-                      <Card key={team.id} className="p-4 sm:p-6 bg-white">
-                        {/* Team Header */}
-                        <div className="flex items-center gap-4 mb-6 pb-4 border-b-2 border-gray-100">
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center p-4 flex-shrink-0">
-                            <img
-                              src={`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`}
-                              alt={team.name}
-                              crossOrigin="anonymous"
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-3xl font-black leading-none">${team.short_name}</div></div>`;
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-                              {team.name}
-                            </div>
-                            <div className="text-sm text-gray-600 truncate mb-2">
-                              {team.short_name}
-                            </div>
-                            <div className="flex gap-2 flex-wrap">
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
-                                Overall: {team.strength}
-                              </span>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
-                                Attack: {team.strength_attack_home}
-                              </span>
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                                Defence: {team.strength_defence_home}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                    {/* Two Teams Side by Side */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+                      {selectedTeams.map((team) => {
+                        const teamFixtures = getTeamFixtures(team.id, 8);
+                        const avgFDR = teamFixtures.length > 0
+                          ? (teamFixtures.reduce((sum, f) => sum + f.difficulty, 0) / teamFixtures.length).toFixed(2)
+                          : 'N/A';
 
-                        {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                          <div className="text-center p-2 bg-gray-50 rounded-lg">
-                            <div className="text-xs text-gray-600 mb-1">Position</div>
-                            <div className="text-sm font-bold text-gray-900">{team.position || '-'}</div>
-                          </div>
-                          <div className="text-center p-2 bg-purple-50 rounded-lg">
-                            <div className="text-xs text-gray-600 mb-1">Avg FDR</div>
-                            <div className="text-sm font-bold text-purple-600">{avgFDR}</div>
-                          </div>
-                          <div className="text-center p-2 bg-blue-50 rounded-lg">
-                            <div className="text-xs text-gray-600 mb-1">Fixtures</div>
-                            <div className="text-sm font-bold text-blue-600">{teamFixtures.length}</div>
-                          </div>
-                        </div>
-
-                        {/* Fixtures List */}
-                        <div>
-                          <h4 className="text-sm font-bold text-gray-900 mb-3">Next 8 Fixtures</h4>
-                          <div className="space-y-2">
-                            {teamFixtures.map((fixture, idx) => (
-                              <div
-                                key={idx}
-                                className={`${getDifficultyColor(fixture.difficulty)} rounded-lg py-3 px-4 shadow-sm`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <div className="text-xs font-medium opacity-75 mb-0.5">
-                                      GW {fixture.gameweek}
-                                    </div>
-                                    <div className="text-base sm:text-lg font-bold">
-                                      {fixture.opponentShort}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-2xl font-black opacity-90">
-                                      {fixture.isHome ? 'H' : 'A'}
-                                    </div>
-                                  </div>
+                        return (
+                          <div key={team.id} className="bg-white rounded-xl p-3 sm:p-6 shadow-xl">
+                            {/* Team Header */}
+                            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
+                              <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center p-3 sm:p-4 flex-shrink-0">
+                                <img
+                                  src={`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`}
+                                  alt={team.name}
+                                  crossOrigin="anonymous"
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-2xl sm:text-3xl font-black leading-none">${team.short_name}</div></div>`;
+                                    }
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-lg sm:text-xl lg:text-2xl font-black text-gray-900 truncate">
+                                  {team.name}
+                                </div>
+                                <div className="text-xs sm:text-sm text-gray-600 truncate mb-1 sm:mb-2">
+                                  {team.short_name}
+                                </div>
+                                <div className="flex gap-1 sm:gap-2 flex-wrap">
+                                  <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700">
+                                    Overall: {team.strength}
+                                  </span>
+                                  <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                                    Attack: {team.strength_attack_home}
+                                  </span>
                                 </div>
                               </div>
-                            ))}
-                            {teamFixtures.length === 0 && (
-                              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-600">No fixtures available</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
+                            </div>
 
-                {/* Brand Watermark Footer */}
-                <div className="flex items-center justify-center pt-4 border-t-2 border-purple-200">
-                  <div className="flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full px-6 py-3 shadow-lg">
-                    <div className="text-3xl">⚽</div>
-                    <div>
-                      <div className="font-black text-white text-lg leading-tight">@FPL_Dave_</div>
-                      <div className="text-xs text-white/90 leading-tight">FPL Analytics Pro</div>
+                            {/* Stats Row */}
+                            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+                              <div className="text-center p-1.5 sm:p-2 bg-gray-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-0.5 sm:mb-1">Position</div>
+                                <div className="text-xs sm:text-sm font-bold text-gray-900">{team.position || '-'}</div>
+                              </div>
+                              <div className="text-center p-1.5 sm:p-2 bg-purple-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-0.5 sm:mb-1">Avg FDR</div>
+                                <div className="text-xs sm:text-sm font-bold text-purple-600">{avgFDR}</div>
+                              </div>
+                              <div className="text-center p-1.5 sm:p-2 bg-blue-50 rounded-lg">
+                                <div className="text-xs text-gray-600 mb-0.5 sm:mb-1">Fixtures</div>
+                                <div className="text-xs sm:text-sm font-bold text-blue-600">{teamFixtures.length}</div>
+                              </div>
+                            </div>
+
+                            {/* Fixtures List */}
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-bold text-gray-900 mb-2 sm:mb-3">Next 8 Fixtures</h4>
+                              <div className="space-y-1.5 sm:space-y-2">
+                                {teamFixtures.map((fixture, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`${getDifficultyColor(fixture.difficulty)} rounded-lg py-2 sm:py-3 px-2 sm:px-4 shadow-sm`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="text-xs font-medium opacity-75 mb-0.5">
+                                          GW {fixture.gameweek}
+                                        </div>
+                                        <div className="text-sm sm:text-base lg:text-lg font-bold">
+                                          {fixture.opponentShort}
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-xl sm:text-2xl font-black opacity-90">
+                                          {fixture.isHome ? 'H' : 'A'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                                {teamFixtures.length === 0 && (
+                                  <div className="text-center py-6 sm:py-8 bg-gray-50 rounded-lg">
+                                    <p className="text-xs sm:text-sm text-gray-600">No fixtures available</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Brand Watermark Footer */}
+                    <div className="flex items-center justify-center pt-4 sm:pt-8 mt-4 sm:mt-8 border-t-2 border-white/20">
+                      <div className="flex items-center gap-2 sm:gap-3 bg-white rounded-full px-4 sm:px-6 py-2 sm:py-3 shadow-lg">
+                        <div className="text-2xl sm:text-3xl">⚽</div>
+                        <div>
+                          <div className="font-black text-purple-600 text-base sm:text-lg leading-tight">@FPL_Dave_</div>
+                          <div className="text-xs text-gray-600 leading-tight">FPL Analytics Pro</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Download Button */}
-              <div className="text-center">
-                <Button
-                  onClick={handleDownloadTeams}
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg"
-                  disabled={isDownloading}
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  {isDownloading ? 'Downloading...' : 'Download Comparison'}
-                </Button>
               </div>
             </>
           )}
@@ -749,7 +673,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
           <h3 className="text-sm font-bold text-gray-900 mb-3">Fixture Difficulty Rating (FDR)</h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
             {[
-              { diff: 1, label: 'Very Easy', color: 'bg-[#01FC7C]' },
+              { diff: 1, label: 'Very Easy', color: 'bg-[#375523]' },
               { diff: 2, label: 'Easy', color: 'bg-[#00FF87]' },
               { diff: 3, label: 'Medium', color: 'bg-gray-400' },
               { diff: 4, label: 'Hard', color: 'bg-[#FF1751]' },
@@ -876,7 +800,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
               {/* Team List */}
               {activeTab === 'teams' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {filteredTeams.map((team, index) => {
+                  {filteredTeams.map((team) => {
                     const isSelected = selectedTeams.find(t => t.id === team.id);
                     return (
                       <button

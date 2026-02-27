@@ -16,7 +16,7 @@ interface FixturesComparisonNewProps {
 const getDifficultyColor = (difficulty: number): string => {
   switch (difficulty) {
     case 1:
-      return 'bg-[#375523] text-white'; // Dark Green - Official FPL
+      return 'bg-[#01FC7C] text-gray-900'; // Bright Green - Official FPL
     case 2:
       return 'bg-[#00FF87] text-gray-900'; // Light Green
     case 3:
@@ -673,7 +673,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
           <h3 className="text-sm font-bold text-gray-900 mb-3">Fixture Difficulty Rating (FDR)</h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
             {[
-              { diff: 1, label: 'Very Easy', color: 'bg-[#375523]' },
+              { diff: 1, label: 'Very Easy', color: 'bg-[#01FC7C]' },
               { diff: 2, label: 'Easy', color: 'bg-[#00FF87]' },
               { diff: 3, label: 'Medium', color: 'bg-gray-400' },
               { diff: 4, label: 'Hard', color: 'bg-[#FF1751]' },

@@ -11,7 +11,11 @@ import {
   DollarSign,
   Sparkles,
   ListIcon,
-  Target
+  Target,
+  Zap,
+  Award,
+  Shield,
+  Trophy
 } from 'lucide-react';
 import { Button } from './ui/button';
 import xLogo from '../../assets/logo.jpg';
@@ -28,6 +32,10 @@ const navigationItems = [
   { id: 'comparison', name: 'Player Comparison', icon: Users },
   { id: 'fixtures', name: 'Fixtures', icon: TrendingUp },
   { id: 'fdr-fixtures', name: 'Team Fixtures (FDR)', icon: Activity },
+  { id: 'live-gameweek', name: 'Live Gameweek', icon: Zap },
+  { id: 'live-bps', name: 'Live BPS Tracker', icon: Award },
+  { id: 'live-defcon', name: 'Live DefCon Tracker', icon: Shield },
+  { id: 'live-rank', name: 'Live Rank Tracker', icon: Trophy },
   { id: 'price-changes', name: 'Price Changes', icon: DollarSign },
   { id: 'export-cards', name: 'Export Cards', icon: Download },
   { id: 'analytics', name: 'Analytics', icon: BarChart3 },

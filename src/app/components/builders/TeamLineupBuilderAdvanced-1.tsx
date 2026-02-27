@@ -162,19 +162,15 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
     try {
       // Fetch bootstrap data if not loaded
       if (!bootstrap) {
-        console.log('Loading bootstrap data first...');
         await fetchBootstrapData();
       }
 
       const managerId = Number(fplId);
       const targetGw = Number(gameweek);
-      
-      console.log(`Loading team for FPL ID: ${managerId}, Target GW: ${targetGw}`);
 
       // Fetch manager data
       const managerData = await FPLService.getManager(managerId);
       setTeamName(managerData.name);
-      console.log(`✅ Manager name: ${managerData.name}`);
 
       // Try current GW, then GW-1, then GW-2 (in case current GW hasn't started)
       let picksData: any = null;
@@ -182,17 +178,14 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       
       for (const gwTry of [targetGw, targetGw - 1, targetGw - 2].filter(g => g > 0)) {
         try {
-          console.log(`Trying to load picks for GW${gwTry}...`);
           const res = await FPLService.getManagerTeam(managerId, gwTry);
           
           if (res?.picks?.length) {
             picksData = res;
             actualGw = gwTry;
-            console.log(`✅ Found ${res.picks.length} picks for GW${gwTry}`);
             break;
           }
         } catch (err) {
-          console.log(`No picks found for GW${gwTry}, trying earlier gameweek...`);
           continue;
         }
       }
@@ -204,7 +197,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       // Update gameweek to actual GW found
       if (actualGw !== targetGw) {
         setGameweek(String(actualGw));
-        console.log(`📌 Using GW${actualGw} instead of GW${targetGw} (current GW may not have started)`);
       }
 
       // Sort picks by position field (FPL orders: GK→DEF→MID→FWD→bench)
@@ -213,10 +205,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       // Map picks to squad with player data from already-loaded players array
       const newSquad: SquadPlayer[] = sortedPicks.map((pick: any) => {
         const player = players.find(p => p.id === pick.element);
-        
-        if (!player) {
-          console.warn(`⚠️ Player ${pick.element} not found in bootstrap data`);
-        }
         
         return {
           id: pick.element,
@@ -238,7 +226,6 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
       setFormation(newFormation);
 
       setError('');
-      console.log(`✅ Successfully loaded ${newSquad.length} players for ${managerData.name} (GW${actualGw})`);
       
       // Show success message if we used a fallback GW
       if (actualGw !== targetGw) {

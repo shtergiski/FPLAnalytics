@@ -4,18 +4,16 @@
 async function fetchProxy(url: string): Promise<Response> {
   // Try direct fetch first (in case CORS is allowed)
   try {
-    console.log(`🔗 Attempting direct fetch (no proxy)...`);
     const directResponse = await fetch(url, {
       headers: {
         'Accept': 'application/json',
       },
     });
     if (directResponse.ok) {
-      console.log(`✅ Direct fetch succeeded!`);
       return directResponse;
     }
   } catch (error: any) {
-    console.log(`ℹ️ Direct fetch blocked (expected):`, error.message);
+    // Direct fetch blocked, will try proxies
   }
 
   // Multiple proxies for better reliability - ordered by reliability
@@ -27,15 +25,10 @@ async function fetchProxy(url: string): Promise<Response> {
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   ];
   
-  console.log(`🌐 Attempting to fetch via proxies...`);
-  
   for (let i = 0; i < proxies.length; i++) {
     const proxyUrl = proxies[i];
-    const proxyName = i === 0 ? 'corsproxy.io' : i === 1 ? 'codetabs.com' : i === 2 ? 'cors-anywhere' : i === 3 ? 'thingproxy' : 'allorigins.win';
     
     try {
-      console.log(`📡 Trying proxy ${i + 1}/${proxies.length}: ${proxyName}`);
-      
       // Create timeout promise (reduced to 10s for faster failover)
       const timeoutPromise = new Promise<Response>((_, reject) => {
         setTimeout(() => reject(new Error('Timeout')), 10000);
@@ -52,13 +45,9 @@ async function fetchProxy(url: string): Promise<Response> {
       const response = await Promise.race([fetchPromise, timeoutPromise]);
       
       if (response.ok) {
-        console.log(`✅ Success with ${proxyName}`);
         return response;
       }
-      
-      console.warn(`❌ ${proxyName} returned HTTP ${response.status}`);
     } catch (error: any) {
-      console.warn(`❌ ${proxyName} failed:`, error.message);
       // Try next proxy
       continue;
     }
@@ -164,13 +153,11 @@ class FPLCache {
       return null;
     }
     
-    console.log(`📦 Using cached data for: ${key}`);
     return cached.data;
   }
 
   set(key: string, data: any): void {
     this.cache.set(key, { data, timestamp: Date.now() });
-    console.log(`💾 Cached data for: ${key}`);
   }
 
   clear(): void {

@@ -6,18 +6,18 @@ import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, Star } from 'lucide-react';
 // Official FPL FDR Colors
 const getFDRColor = (difficulty: number) => {
   switch(difficulty) {
-    case 1: return 'bg-[#375523]'; // Dark green (easiest) - Updated color
-    case 2: return 'bg-[#00FF87]'; // Light green
+    case 1: return 'bg-[#01FC7C]'; // Bright green (Very Easy) - Official FPL color
+    case 2: return 'bg-[#00FF87]'; // Light green (Easy)
     case 3: return 'bg-gray-400';  // Gray (neutral)
-    case 4: return 'bg-[#FF1751]'; // Pink/red
-    case 5: return 'bg-[#861134]'; // Dark red (hardest)
+    case 4: return 'bg-[#FF1751]'; // Pink/red (Difficult)
+    case 5: return 'bg-[#861134]'; // Dark red (Very Difficult)
     default: return 'bg-gray-400';
   }
 };
 
 const getFDRTextColor = (difficulty: number) => {
   switch(difficulty) {
-    case 1: return 'text-white'; // White text for darker green
+    case 1: return 'text-gray-900'; // Dark text for bright green
     case 2: return 'text-gray-900';
     case 3: return 'text-white';
     case 4: return 'text-white';

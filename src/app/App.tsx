@@ -22,6 +22,10 @@ const CreatorHub = React.lazy(() => import('./components/CreatorHub').then(m => 
 const PlayerStats = React.lazy(() => import('./components/PlayerStats').then(m => ({ default: m.PlayerStats })));
 const TeamPlannerStudio = React.lazy(() => import('./components/studio/TeamPlannerStudio').then(m => ({ default: m.TeamPlannerStudio })));
 const FDRFixturesPage = React.lazy(() => import('./components/FDRFixturesPage').then(m => ({ default: m.FDRFixturesPage })));
+const LiveGameweekData = React.lazy(() => import('./components/LiveGameweekData').then(m => ({ default: m.LiveGameweekData })));
+const LiveBPSTracker = React.lazy(() => import('./components/LiveBPSTracker').then(m => ({ default: m.LiveBPSTracker })));
+const LiveDefConTracker = React.lazy(() => import('./components/LiveDefConTracker').then(m => ({ default: m.LiveDefConTracker })));
+const LiveRankTracker = React.lazy(() => import('./components/LiveRankTracker').then(m => ({ default: m.LiveRankTracker })));
 
 export default function App() {
   const { 
@@ -520,6 +524,50 @@ export default function App() {
           </React.Suspense>
         );
 
+      case 'live-gameweek':
+        return (
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          }>
+            <LiveGameweekData />
+          </React.Suspense>
+        );
+
+      case 'live-bps':
+        return (
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          }>
+            <LiveBPSTracker />
+          </React.Suspense>
+        );
+
+      case 'live-defcon':
+        return (
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          }>
+            <LiveDefConTracker />
+          </React.Suspense>
+        );
+
+      case 'live-rank':
+        return (
+          <React.Suspense fallback={
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            </div>
+          }>
+            <LiveRankTracker />
+          </React.Suspense>
+        );
+
       default:
         return null;
     }
@@ -537,6 +585,10 @@ export default function App() {
     'player-stats': 'Player Stats',
     'team-planner': 'Team Planner Studio',
     'fdr-fixtures': 'FDR Fixtures Page',
+    'live-gameweek': 'Live Gameweek Data',
+    'live-bps': 'Live BPS Tracker',
+    'live-defcon': 'Live DefCon Tracker',
+    'live-rank': 'Live Rank Tracker',
   };
 
   return (

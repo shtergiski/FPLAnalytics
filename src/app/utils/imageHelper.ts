@@ -15,8 +15,6 @@ export async function fetchImageAsBase64(imageUrl: string): Promise<string> {
 
   for (const proxyUrl of proxies) {
     try {
-      console.log(`Trying proxy: ${proxyUrl.substring(0, 50)}...`);
-      
       const response = await Promise.race([
         fetch(proxyUrl, {
           method: 'GET',
@@ -24,7 +22,7 @@ export async function fetchImageAsBase64(imageUrl: string): Promise<string> {
             'Accept': 'image/png,image/*',
           }
         }),
-        new Promise<Response>((_, reject) => 
+        new Promise<Response>((_, reject) =>
           setTimeout(() => reject(new Error('Timeout after 15s')), 15000)
         )
       ]);
@@ -35,7 +33,7 @@ export async function fetchImageAsBase64(imageUrl: string): Promise<string> {
       }
 
       const blob = await response.blob();
-      
+
       // Check if we got a valid image
       if (!blob.type.startsWith('image/')) {
         console.warn(`Invalid content type: ${blob.type}`);
@@ -67,7 +65,7 @@ export async function fetchImagesAsBase64(imageUrls: string[]): Promise<string[]
   const results = await Promise.allSettled(
     imageUrls.map(url => fetchImageAsBase64(url))
   );
-  
+
   return results.map((result, index) => {
     if (result.status === 'fulfilled') {
       return result.value;

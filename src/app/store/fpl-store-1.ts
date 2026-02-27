@@ -10,16 +10,16 @@ interface FPLStore {
   events: Event[];
   currentGameweek: number;
   bootstrap: any | null;
-  
+
   // Loading states
   isLoading: boolean;
   error: string | null;
-  
+
   // User team state
   selectedPlayers: Player[];
   budget: number;
   freeTransfers: number;
-  
+
   // Actions
   fetchBootstrapData: () => Promise<void>;
   fetchFixtures: () => Promise<void>;
@@ -824,31 +824,31 @@ const mockFixtures: Fixture[] = [
   { id: 2, event: 28, team_h: 7, team_a: 15, team_h_difficulty: 3, team_a_difficulty: 3, kickoff_time: '2024-03-09T15:00:00Z', finished: false },
   { id: 3, event: 28, team_h: 11, team_a: 13, team_h_difficulty: 5, team_a_difficulty: 5, kickoff_time: '2024-03-09T17:30:00Z', finished: false },
   { id: 4, event: 28, team_h: 18, team_a: 2, team_h_difficulty: 3, team_a_difficulty: 3, kickoff_time: '2024-03-10T14:00:00Z', finished: false },
-  
+
   // GW 29
   { id: 5, event: 29, team_h: 3, team_a: 11, team_h_difficulty: 5, team_a_difficulty: 2, kickoff_time: '2024-03-16T15:00:00Z', finished: false },
   { id: 6, event: 29, team_h: 13, team_a: 1, team_h_difficulty: 4, team_a_difficulty: 4, kickoff_time: '2024-03-16T15:00:00Z', finished: false },
   { id: 7, event: 29, team_h: 15, team_a: 7, team_h_difficulty: 3, team_a_difficulty: 3, kickoff_time: '2024-03-16T17:30:00Z', finished: false },
   { id: 8, event: 29, team_h: 2, team_a: 18, team_h_difficulty: 3, team_a_difficulty: 3, kickoff_time: '2024-03-17T14:00:00Z', finished: false },
-  
+
   // GW 30
   { id: 9, event: 30, team_h: 1, team_a: 18, team_h_difficulty: 3, team_a_difficulty: 4, kickoff_time: '2024-03-23T15:00:00Z', finished: false },
   { id: 10, event: 30, team_h: 11, team_a: 7, team_h_difficulty: 3, team_a_difficulty: 4, kickoff_time: '2024-03-23T15:00:00Z', finished: false },
   { id: 11, event: 30, team_h: 13, team_a: 2, team_h_difficulty: 3, team_a_difficulty: 5, kickoff_time: '2024-03-23T17:30:00Z', finished: false },
   { id: 12, event: 30, team_h: 3, team_a: 15, team_h_difficulty: 4, team_a_difficulty: 2, kickoff_time: '2024-03-24T14:00:00Z', finished: false },
-  
+
   // GW 31
   { id: 13, event: 31, team_h: 7, team_a: 1, team_h_difficulty: 4, team_a_difficulty: 3, kickoff_time: '2024-03-30T15:00:00Z', finished: false },
   { id: 14, event: 31, team_h: 18, team_a: 11, team_h_difficulty: 5, team_a_difficulty: 2, kickoff_time: '2024-03-30T15:00:00Z', finished: false },
   { id: 15, event: 31, team_h: 2, team_a: 13, team_h_difficulty: 5, team_a_difficulty: 2, kickoff_time: '2024-03-30T17:30:00Z', finished: false },
   { id: 16, event: 31, team_h: 15, team_a: 3, team_h_difficulty: 2, team_a_difficulty: 4, kickoff_time: '2024-03-31T14:00:00Z', finished: false },
-  
+
   // GW 32
   { id: 17, event: 32, team_h: 1, team_a: 11, team_h_difficulty: 5, team_a_difficulty: 5, kickoff_time: '2024-04-06T15:00:00Z', finished: false },
   { id: 18, event: 32, team_h: 13, team_a: 7, team_h_difficulty: 3, team_a_difficulty: 4, kickoff_time: '2024-04-06T15:00:00Z', finished: false },
   { id: 19, event: 32, team_h: 3, team_a: 2, team_h_difficulty: 3, team_a_difficulty: 2, kickoff_time: '2024-04-06T17:30:00Z', finished: false },
   { id: 20, event: 32, team_h: 18, team_a: 15, team_h_difficulty: 3, team_a_difficulty: 3, kickoff_time: '2024-04-07T14:00:00Z', finished: false },
-  
+
   // GW 33
   { id: 21, event: 33, team_h: 11, team_a: 3, team_h_difficulty: 2, team_a_difficulty: 5, kickoff_time: '2024-04-13T15:00:00Z', finished: false },
   { id: 22, event: 33, team_h: 7, team_a: 13, team_h_difficulty: 4, team_a_difficulty: 3, kickoff_time: '2024-04-13T15:00:00Z', finished: false },
@@ -883,7 +883,7 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
   // Fetch bootstrap-static data
   fetchBootstrapData: async () => {
     set({ isLoading: true, error: null });
-    
+
     // Check cache first
     const cached = fplCache.get('bootstrap');
     if (cached) {
@@ -892,7 +892,7 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
         team_name: cached.teams.find((t: Team) => t.id === player.team)?.short_name || '',
         team_code: cached.teams.find((t: Team) => t.id === player.team)?.code || null,
       }));
-      
+
       set({
         players: enrichedPlayers,
         teams: cached.teams,
@@ -903,13 +903,13 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
       });
       return;
     }
-    
+
     try {
       const data = await FPLService.loadBootstrap();
-      
+
       // Cache the data
       fplCache.set('bootstrap', data);
-      
+
       // Enrich players with team names
       const enrichedPlayers = data.elements.map((player: Player) => ({
         ...player,
@@ -917,9 +917,8 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
         team_code: data.teams.find((t: Team) => t.id === player.team)?.code || null,
         code: player.code
       }));
-      
-      console.log(`✅ Loaded ${enrichedPlayers.length} real FPL players from API`);
-      
+
+
       set({
         players: enrichedPlayers,
         teams: data.teams,
@@ -930,8 +929,7 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
         error: null
       });
     } catch (error) {
-      console.log('📦 Using mock data (FPL API unavailable)');
-      
+
       // Use mock data as fallback - this is fine!
       set({
         players: mockPlayers,
@@ -953,14 +951,12 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
       set({ fixtures: cached });
       return;
     }
-    
+
     try {
       const data = await FPLService.loadFixtures();
       fplCache.set('fixtures', data);
-      console.log(`✅ Loaded ${data.length} real FPL fixtures from API`);
       set({ fixtures: data });
     } catch (error) {
-      console.log('📦 Using mock fixtures (FPL API unavailable)');
       set({ fixtures: mockFixtures });
     }
   },
@@ -969,12 +965,12 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
   getPlayerFixtures: (playerId: number, numFixtures = 5): PlayerFixture[] => {
     const { players, teams, fixtures, currentGameweek } = get();
     const player = players.find(p => p.id === playerId);
-    
+
     if (!player) return [];
 
     // Filter fixtures for this player's team from current GW onwards
     const teamFixtures = fixtures
-      .filter(f => 
+      .filter(f =>
         (f.team_h === player.team || f.team_a === player.team) &&
         f.event >= currentGameweek &&
         !f.finished
@@ -1007,7 +1003,7 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
   getAverageFDR: (playerId: number): number => {
     const fixtures = get().getPlayerFixtures(playerId, 5);
     if (fixtures.length === 0) return 0;
-    
+
     const totalDifficulty = fixtures.reduce((sum, f) => sum + f.difficulty, 0);
     return totalDifficulty / fixtures.length;
   },
@@ -1015,10 +1011,10 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
   // Add player to user's team
   addPlayerToTeam: (player: Player) => {
     const { selectedPlayers, budget } = get();
-    
+
     if (selectedPlayers.length >= 15) return;
     if (budget < player.now_cost) return;
-    
+
     set({
       selectedPlayers: [...selectedPlayers, player],
       budget: budget - player.now_cost
@@ -1029,9 +1025,9 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
   removePlayerFromTeam: (playerId: number) => {
     const { selectedPlayers, budget } = get();
     const player = selectedPlayers.find(p => p.id === playerId);
-    
+
     if (!player) return;
-    
+
     set({
       selectedPlayers: selectedPlayers.filter(p => p.id !== playerId),
       budget: budget + player.now_cost

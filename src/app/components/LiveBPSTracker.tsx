@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { FPLService } from '../utils/corsProxy';
 import { useFPLStore } from '../store/fpl-store';
+import { PlayerImage } from './ui/player-image';
+import { TeamBadge } from './ui/team-badge';
 
 interface LivePlayerData {
   id: number;
@@ -32,6 +34,11 @@ interface LivePlayerData {
     yellow_cards: number;
     red_cards: number;
     saves: number;
+    saves_inside_box: number;
+    saves_outside_box: number;
+    tackles: number;
+    goalline_clearances: number;
+    penalties_conceded: number;
     bonus: number;
     bps: number;
     influence: string;
@@ -62,7 +69,7 @@ interface FixtureData {
 }
 
 export function LiveBPSTracker() {
-  const { bootstrap } = useFPLStore();
+  const { bootstrap, updateLivePlayerStats } = useFPLStore();
   const [gameweek, setGameweek] = useState('28');
   const [liveData, setLiveData] = useState<LivePlayerData[]>([]);
   const [fixtures, setFixtures] = useState<FixtureData[]>([]);
@@ -73,66 +80,73 @@ export function LiveBPSTracker() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [minBPS, setMinBPS] = useState('20');
   const [expandedFixtures, setExpandedFixtures] = useState<Set<number>>(new Set());
-  const [isTabVisible, setIsTabVisible] = useState(true);
   const [hasLiveFixtures, setHasLiveFixtures] = useState(true);
+  const autoRefreshRef = useRef(autoRefresh);
+  autoRefreshRef.current = autoRefresh;
+  const fetchLiveDataRef = useRef<() => void>(() => {});
 
-  // Track tab visibility
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(!document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const fetchLiveData = async () => {
+  const fetchLiveData = useCallback(async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      // Fetch live gameweek data
-      const data = await FPLService.loadLiveGameweek(Number(gameweek));
-      setLiveData(data.elements || []);
-      
-      // Fetch fixtures for this gameweek
-      const allFixtures = await FPLService.loadFixtures();
-      const gwFixtures = allFixtures.filter((f: any) => f.event === Number(gameweek));
+      // Fetch live data and fixtures in parallel, always bypassing cache
+      const [data, allFixtures] = await Promise.all([
+        FPLService.loadLiveGameweek(Number(gameweek)),
+        FPLService.loadFixtures(true),
+      ]);
+
+      const elements: LivePlayerData[] = data.elements || [];
+      setLiveData(elements);
+
+      // Partial store update — only push changed stats
+      updateLivePlayerStats(
+        elements
+          .filter((el: LivePlayerData) => el.stats.minutes > 0)
+          .map((el: LivePlayerData) => ({ id: el.id, stats: el.stats as unknown as Record<string, unknown> }))
+      );
+
+      const gwFixtures = allFixtures.filter((f: { event: number }) => f.event === Number(gameweek));
       setFixtures(gwFixtures);
-      
-      // Check if any fixtures are live (started but not finished)
-      const anyLive = gwFixtures.some((f: any) => f.started && !f.finished);
+
+      const anyLive = gwFixtures.some((f: { started: boolean; finished: boolean }) => f.started && !f.finished);
       setHasLiveFixtures(anyLive);
-      
-      // Auto-turn off auto-refresh if no live fixtures
-      if (!anyLive && autoRefresh) {
+
+      if (!anyLive && autoRefreshRef.current) {
         setAutoRefresh(false);
       }
-      
+
       setLastUpdate(new Date());
-    } catch (err: any) {
-      setError(err.message || 'Failed to load live data');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load live data';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameweek, updateLivePlayerStats]);
+
+  // Keep ref in sync so the interval always calls the latest version
+  fetchLiveDataRef.current = fetchLiveData;
 
   // Auto-refresh every 90 seconds if enabled
+  // Only depends on autoRefresh — checks document.hidden at fire-time to skip
+  // hidden-tab fetches without resetting the 90-second countdown.
   useEffect(() => {
-    if (autoRefresh && isTabVisible) {
-      const interval = setInterval(() => {
-        fetchLiveData();
-      }, 90000); // 90 seconds
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, gameweek, isTabVisible]);
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchLiveDataRef.current();
+      }
+    }, 90000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   // Auto-load when gameweek changes
   useEffect(() => {
     fetchLiveData();
-  }, [gameweek]);
+  }, [fetchLiveData]);
 
   // Get player info from bootstrap
   const getPlayerInfo = (playerId: number) => {
@@ -144,22 +158,123 @@ export function LiveBPSTracker() {
     return bootstrap?.teams?.find(t => t.id === teamId);
   };
 
+  // Count penalty goals from explain stats (identifier: "penalties_scored")
+  const countPenaltyGoals = (explain: LivePlayerData['explain']): number => {
+    if (!explain) return 0;
+    return explain.reduce((total, fixture) => {
+      const penStat = fixture.stats.find(s => s.identifier === 'penalties_scored');
+      return total + (penStat?.value || 0);
+    }, 0);
+  };
+
+  // 2025/26 Predictive BPS calculation
+  const calculatePredictedBPS = (
+    stats: LivePlayerData['stats'],
+    elementType: number,
+    explain: LivePlayerData['explain']
+  ): number => {
+    let bps = 0;
+
+    // Playing minutes — official: 3 BPS for 1-59 mins, 6 BPS for 60+ mins
+    if (stats.minutes > 0) bps += 3;
+    if (stats.minutes >= 60) bps += 3;
+
+    // Goals — 2025/26: penalty goals get flat 12 BPS regardless of position
+    const penGoals = countPenaltyGoals(explain);
+    const openPlayGoals = Math.max(0, stats.goals_scored - penGoals);
+
+    // Penalty goals: flat 12 BPS each
+    bps += penGoals * 12;
+
+    // Open play goals: position-based BPS
+    if (elementType === 1 || elementType === 2) {
+      bps += openPlayGoals * 12;
+    } else if (elementType === 3) {
+      bps += openPlayGoals * 18;
+    } else {
+      bps += openPlayGoals * 24;
+    }
+
+    // Assists
+    bps += stats.assists * 9;
+
+    // GK Saves — 2025/26: 3 BPS inside box, 2 BPS outside box
+    if (elementType === 1) {
+      const insideBoxSaves = stats.saves_inside_box || 0;
+      const outsideBoxSaves = stats.saves_outside_box || 0;
+      if (insideBoxSaves > 0 || outsideBoxSaves > 0) {
+        bps += (insideBoxSaves * 3) + (outsideBoxSaves * 2);
+      } else {
+        // Fallback: use total saves * 2 if breakdown unavailable
+        bps += (stats.saves || 0) * 2;
+      }
+    }
+
+    // Tackles Won — 2025/26: +2 BPS per tackle (no tackles lost penalty)
+    bps += (stats.tackles || 0) * 2;
+
+    // Goalline Clearances — 2025/26: +9 BPS each
+    bps += (stats.goalline_clearances || 0) * 9;
+
+    // Clean sheet
+    if (stats.clean_sheets > 0) {
+      if (elementType === 1) bps += 12;
+      else if (elementType === 2) bps += 12;
+      else if (elementType === 3) bps += 6;
+    }
+
+    // Penalties saved — 2025/26: 8 BPS (changed from 15)
+    bps += stats.penalties_saved * 8;
+
+    // Penalty missed
+    bps -= stats.penalties_missed * 6;
+
+    // Yellow card
+    bps -= stats.yellow_cards * 3;
+
+    // Red card
+    bps -= stats.red_cards * 9;
+
+    // Own goal
+    bps -= stats.own_goals * 6;
+
+    // Goals conceded (GK/DEF only) — official: -4 BPS per goal
+    if (elementType === 1 || elementType === 2) {
+      bps -= stats.goals_conceded * 4;
+    }
+
+    return Math.max(0, bps);
+  };
+
+  // Get effective BPS: use API value if available, fall back to prediction
+  const getEffectiveBPS = (
+    stats: LivePlayerData['stats'],
+    elementType: number,
+    explain: LivePlayerData['explain']
+  ): number => {
+    if (stats.bps > 0) return stats.bps;
+    return calculatePredictedBPS(stats, elementType, explain);
+  };
+
   // Group players by fixture and calculate BPS standings
   const getFixtureBPS = (fixtureId: number) => {
     const players = liveData
       .map(livePlayer => {
         const player = getPlayerInfo(livePlayer.id);
-        return { ...livePlayer, player };
+        const effectiveBPS = player
+          ? getEffectiveBPS(livePlayer.stats, player.element_type, livePlayer.explain)
+          : livePlayer.stats.bps;
+        return { ...livePlayer, player, effectiveBPS };
       })
       .filter(({ player, stats, explain }) => {
         if (!player || stats.minutes === 0) return false;
-        
+
         // Check if player was in this fixture
         const fixtureStats = explain?.find(e => e.fixture === fixtureId);
         return !!fixtureStats;
       })
-      .sort((a, b) => b.stats.bps - a.stats.bps);
-    
+      .sort((a, b) => b.effectiveBPS - a.effectiveBPS);
+
     return players;
   };
 
@@ -184,42 +299,76 @@ export function LiveBPSTracker() {
   const topBPSPlayers = liveData
     .map(livePlayer => {
       const player = getPlayerInfo(livePlayer.id);
-      return { ...livePlayer, player };
+      const effectiveBPS = player
+        ? getEffectiveBPS(livePlayer.stats, player.element_type, livePlayer.explain)
+        : livePlayer.stats.bps;
+      return { ...livePlayer, player, effectiveBPS };
     })
-    .filter(({ stats, player }) => player && stats.minutes > 0 && stats.bps >= Number(minBPS))
-    .sort((a, b) => b.stats.bps - a.stats.bps)
+    .filter(({ player, stats, effectiveBPS }) => player && stats.minutes > 0 && effectiveBPS >= Number(minBPS))
+    .sort((a, b) => b.effectiveBPS - a.effectiveBPS)
     .slice(0, 20);
   
   // Calculate summary stats
   // 1. All unique players who played (minutes > 0)
-  const allActivePlayers = liveData.filter(p => p.stats.minutes > 0);
+  const allActivePlayers = liveData
+    .filter(p => p.stats.minutes > 0)
+    .map(p => {
+      const player = getPlayerInfo(p.id);
+      const effectiveBPS = player
+        ? getEffectiveBPS(p.stats, player.element_type, p.explain)
+        : p.stats.bps;
+      return { ...p, effectiveBPS };
+    });
   const uniquePlayers = allActivePlayers.length;
-  
+
   // 2. Average BPS across all active players
-  const totalBPS = allActivePlayers.reduce((sum, p) => sum + p.stats.bps, 0);
+  const totalBPS = allActivePlayers.reduce((sum, p) => sum + p.effectiveBPS, 0);
   const averageBPS = uniquePlayers > 0 ? Math.round(totalBPS / uniquePlayers) : 0;
-  
+
   // 3. Highest BPS (check all active players, not just top 20)
-  const highestBPS = allActivePlayers.length > 0 
-    ? Math.max(...allActivePlayers.map(p => p.stats.bps)) 
+  const highestBPS = allActivePlayers.length > 0
+    ? Math.max(...allActivePlayers.map(p => p.effectiveBPS))
     : 0;
   
-  // Determine bonus points based on BPS rank
-  const getBonusFromRank = (rank: number, totalPlayers: number) => {
-    if (rank === 0 && totalPlayers > 0) return 3;
-    if (rank === 1 && totalPlayers > 1) return 2;
-    if (rank === 2 && totalPlayers > 2) return 1;
-    return 0;
+  // Determine bonus points based on BPS rank with tie handling
+  // Official rules: tied players get the same bonus; ties consume positions
+  const getBonusForFixture = (sortedPlayers: Array<{ effectiveBPS: number }>): Map<number, number> => {
+    const bonusMap = new Map<number, number>(); // index → bonus
+    if (sortedPlayers.length === 0) return bonusMap;
+
+    let bonusPool = [3, 2, 1];
+    let poolIndex = 0;
+    let i = 0;
+
+    while (i < sortedPlayers.length && poolIndex < bonusPool.length) {
+      const currentBPS = sortedPlayers[i].effectiveBPS;
+      // Count how many players share this BPS value
+      let tiedCount = 0;
+      for (let j = i; j < sortedPlayers.length; j++) {
+        if (sortedPlayers[j].effectiveBPS === currentBPS) tiedCount++;
+        else break;
+      }
+
+      const bonus = bonusPool[poolIndex];
+      // All tied players get the same bonus
+      for (let j = i; j < i + tiedCount; j++) {
+        bonusMap.set(j, bonus);
+      }
+
+      // Ties consume that many positions from the pool
+      poolIndex += tiedCount;
+      i += tiedCount;
+    }
+
+    return bonusMap;
   };
   
-  // 4. Total bonus points actually given (top 3 per fixture)
+  // 4. Total bonus points actually given (with tie handling)
   const totalBonusGiven = activeFixtures.reduce((sum, { bpsPlayers }) => {
-    // Only top 3 players get bonus
-    const top3 = bpsPlayers.slice(0, 3);
-    return sum + top3.reduce((fixtureSum, player, index) => {
-      const bonus = getBonusFromRank(index, bpsPlayers.length);
-      return fixtureSum + bonus;
-    }, 0);
+    const bonusMap = getBonusForFixture(bpsPlayers);
+    let fixtureBonus = 0;
+    bonusMap.forEach((bonus) => { fixtureBonus += bonus; });
+    return sum + fixtureBonus;
   }, 0);
 
   // Toggle fixture expansion
@@ -298,9 +447,8 @@ export function LiveBPSTracker() {
             <div className="flex gap-2 items-end">
               <Button
                 onClick={fetchLiveData}
-                disabled={loading || !hasLiveFixtures}
+                disabled={loading}
                 className="flex-1 sm:flex-none bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!hasLiveFixtures ? "No live fixtures in this gameweek" : ""}
               >
                 {loading ? (
                   <>
@@ -333,8 +481,7 @@ export function LiveBPSTracker() {
             <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
               <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               Last updated: {lastUpdate.toLocaleTimeString()}
-              {autoRefresh && isTabVisible && <span className="text-green-600 font-semibold">(Auto-refresh ON)</span>}
-              {autoRefresh && !isTabVisible && <span className="text-orange-600 font-semibold">(Auto-refresh PAUSED - tab inactive)</span>}
+              {autoRefresh && <span className="text-green-600 font-semibold">(Auto-refresh ON)</span>}
             </div>
           )}
 
@@ -349,7 +496,7 @@ export function LiveBPSTracker() {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-xs sm:text-sm text-blue-800">
-                <strong>How BPS Works:</strong> Top 3 BPS in each match get bonus points: 1st = 3pts, 2nd = 2pts, 3rd = 1pt
+                <strong>2025/26 BPS:</strong> Top 3 BPS per match get bonus (3/2/1). GK Saves: 3 BPS (inside box), 2 BPS (outside). Tackles Won: +2 BPS. Penalty Goals: 12 BPS flat. Penalty Saves: 8 BPS. Goalline Clearances: 9 BPS.
               </div>
             </div>
           </div>
@@ -405,15 +552,15 @@ export function LiveBPSTracker() {
                 </tr>
               </thead>
               <tbody>
-                {topBPSPlayers.map(({ id, stats, player }, index) => {
+                {topBPSPlayers.map(({ id, stats, player, effectiveBPS }, index) => {
                   if (!player) return null;
                   const team = bootstrap?.teams?.find(t => t.id === player.team);
                   const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
                   const position = posMap[player.element_type as keyof typeof posMap];
-                  
+
                   const rankColors = ['bg-yellow-500', 'bg-gray-400', 'bg-orange-600'];
                   const rankColor = index < 3 ? rankColors[index] : 'bg-gray-300';
-                  
+
                   return (
                     <tr key={id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-4">
@@ -423,13 +570,11 @@ export function LiveBPSTracker() {
                       </td>
                       <td className="py-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                          <PlayerImage
+                            code={player.code}
+                            teamCode={player.team_code}
                             alt={player.web_name}
                             className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                            onError={(e) => {
-                              e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.team_code}.png`;
-                            }}
                           />
                           <div>
                             <div className="font-semibold text-gray-900">{player.web_name}</div>
@@ -439,7 +584,7 @@ export function LiveBPSTracker() {
                       </td>
                       <td className="text-center">
                         <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 font-bold text-sm">
-                          {stats.bps}
+                          {effectiveBPS}
                         </span>
                       </td>
                       <td className="text-center">
@@ -469,35 +614,33 @@ export function LiveBPSTracker() {
 
           {/* Mobile View */}
           <div className="md:hidden space-y-3">
-            {topBPSPlayers.map(({ id, stats, player }, index) => {
+            {topBPSPlayers.map(({ id, stats, player, effectiveBPS }, index) => {
               if (!player) return null;
               const team = bootstrap?.teams?.find(t => t.id === player.team);
               const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
               const position = posMap[player.element_type as keyof typeof posMap];
-              
+
               const rankColors = ['bg-yellow-500', 'bg-gray-400', 'bg-orange-600'];
               const rankColor = index < 3 ? rankColors[index] : 'bg-gray-300';
-              
+
               return (
                 <Card key={id} className="p-3 bg-gray-50">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-8 h-8 rounded-full ${rankColor} flex items-center justify-center text-white font-bold flex-shrink-0`}>
                       {index + 1}
                     </div>
-                    <img
-                      src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                    <PlayerImage
+                      code={player.code}
+                      teamCode={player.team_code}
                       alt={player.web_name}
                       className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                      onError={(e) => {
-                        e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.team_code}.png`;
-                      }}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-gray-900 truncate">{player.web_name}</div>
                       <div className="text-xs text-gray-600">{team?.short_name} • {position}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-xl font-bold text-yellow-600">{stats.bps}</div>
+                      <div className="text-xl font-bold text-yellow-600">{effectiveBPS}</div>
                       <div className="text-xs text-gray-500">BPS</div>
                     </div>
                   </div>
@@ -550,21 +693,22 @@ export function LiveBPSTracker() {
             {filteredFixtures.map(({ fixture, homeTeam, awayTeam, bpsPlayers }) => {
               const isExpanded = expandedFixtures.has(fixture.id);
               const displayPlayers = isExpanded ? bpsPlayers : bpsPlayers.slice(0, 3);
-              
+              const fixtureBonusMap = getBonusForFixture(bpsPlayers);
+
               return (
                 <Card key={fixture.id} className="p-4 bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200">
                   {/* Match Header */}
                   <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-200">
                     {/* Home Team */}
                     <div className="flex flex-col items-center gap-1 flex-1">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/badges/70/t${homeTeam?.code}.png`}
-                        alt={homeTeam?.name}
+                      <TeamBadge
+                        teamCode={homeTeam?.code ?? 0}
+                        alt={homeTeam?.name ?? ''}
                         className="w-8 h-8 sm:w-10 sm:h-10"
                       />
                       <span className="font-bold text-xs sm:text-sm text-gray-900 text-center">{homeTeam?.short_name}</span>
                     </div>
-                    
+
                     {/* Score */}
                     <div className="text-center flex-shrink-0">
                       <div className="text-lg sm:text-xl font-bold text-gray-700">
@@ -575,12 +719,12 @@ export function LiveBPSTracker() {
                         {fixture.finished ? 'FT' : `${fixture.minutes}'`}
                       </div>
                     </div>
-                    
+
                     {/* Away Team */}
                     <div className="flex flex-col items-center gap-1 flex-1">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/badges/70/t${awayTeam?.code}.png`}
-                        alt={awayTeam?.name}
+                      <TeamBadge
+                        teamCode={awayTeam?.code ?? 0}
+                        alt={awayTeam?.name ?? ''}
                         className="w-8 h-8 sm:w-10 sm:h-10"
                       />
                       <span className="font-bold text-xs sm:text-sm text-gray-900 text-center">{awayTeam?.short_name}</span>
@@ -589,25 +733,23 @@ export function LiveBPSTracker() {
 
                   {/* Top BPS (3 or all depending on expand state) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {displayPlayers.map(({ id, stats, player }, index) => {
+                    {displayPlayers.map(({ id, stats, player, effectiveBPS }, index) => {
                       if (!player) return null;
                       const posMap = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
                       const position = posMap[player.element_type as keyof typeof posMap];
-                      const bonusPoints = getBonusFromRank(index, bpsPlayers.length);
+                      const bonusPoints = fixtureBonusMap.get(index) || 0;
                       const rankLabels = ['🥇 1st', '🥈 2nd', '🥉 3rd'];
-                      
+
                       return (
                         <div key={id} className={`bg-white rounded-lg p-3 border-2 ${index < 3 ? 'border-yellow-200' : 'border-gray-200'}`}>
                           {index < 3 && <div className="text-xs font-bold text-yellow-700 mb-2">{rankLabels[index]}</div>}
                           {index >= 3 && <div className="text-xs font-bold text-gray-600 mb-2">#{index + 1}</div>}
                           <div className="flex items-center gap-2 mb-2">
-                            <img
-                              src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                            <PlayerImage
+                              code={player.code}
+                              teamCode={player.team_code}
                               alt={player.web_name}
                               className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                              onError={(e) => {
-                                e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.team_code}.png`;
-                              }}
                             />
                             <div className="flex-1 min-w-0">
                               <div className="font-bold text-sm text-gray-900 truncate">{player.web_name}</div>
@@ -616,7 +758,7 @@ export function LiveBPSTracker() {
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <div className="text-lg font-bold text-yellow-600">{stats.bps}</div>
+                              <div className="text-lg font-bold text-yellow-600">{effectiveBPS}</div>
                               <div className="text-xs text-gray-500">BPS</div>
                             </div>
                             <div className="text-right">

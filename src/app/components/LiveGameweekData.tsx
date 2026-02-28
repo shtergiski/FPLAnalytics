@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { 
-  RefreshCw, 
-  TrendingUp, 
-  Target, 
-  Activity, 
+import {
+  RefreshCw,
+  TrendingUp,
+  Target,
+  Activity,
   Award,
   Clock,
   AlertCircle,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { FPLService } from '../utils/corsProxy';
 import { useFPLStore } from '../store/fpl-store';
+import { PlayerImage } from './ui/player-image';
 
 interface LivePlayerData {
   id: number;
@@ -61,64 +62,64 @@ export function LiveGameweekData() {
   const [positionFilter, setPositionFilter] = useState<'ALL' | 'GKP' | 'DEF' | 'MID' | 'FWD'>('ALL');
   const [sortBy, setSortBy] = useState<'points' | 'bps' | 'goals' | 'assists'>('points');
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const [isTabVisible, setIsTabVisible] = useState(true);
   const [hasLiveFixtures, setHasLiveFixtures] = useState(true);
+  const autoRefreshRef = useRef(autoRefresh);
+  autoRefreshRef.current = autoRefresh;
+  const fetchLiveDataRef = useRef<() => void>(() => {});
 
-  // Track tab visibility
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(!document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const fetchLiveData = async () => {
+  const fetchLiveData = useCallback(async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const data = await FPLService.loadLiveGameweek(Number(gameweek));
+      // Fetch live data and fixtures in parallel, always bypassing cache
+      const [data, allFixtures] = await Promise.all([
+        FPLService.loadLiveGameweek(Number(gameweek)),
+        FPLService.loadFixtures(true),
+      ]);
+
       setLiveData(data.elements || []);
-      
-      // Fetch fixtures for this gameweek to check if live
-      const allFixtures = await FPLService.loadFixtures();
-      const gwFixtures = allFixtures.filter((f: any) => f.event === Number(gameweek));
-      
-      // Check if any fixtures are live (started but not finished)
-      const anyLive = gwFixtures.some((f: any) => f.started && !f.finished);
+
+      const gwFixtures = allFixtures.filter((f: { event: number }) => f.event === Number(gameweek));
+      const anyLive = gwFixtures.some((f: { started: boolean; finished: boolean }) => f.started && !f.finished);
       setHasLiveFixtures(anyLive);
-      
+
       // Auto-turn off auto-refresh if no live fixtures
-      if (!anyLive && autoRefresh) {
+      if (!anyLive && autoRefreshRef.current) {
         setAutoRefresh(false);
       }
-      
+
       setLastUpdate(new Date());
-    } catch (err: any) {
-      setError(err.message || 'Failed to load live data');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load live data';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameweek]);
+
+  // Keep ref in sync so the interval always calls the latest version
+  fetchLiveDataRef.current = fetchLiveData;
 
   // Auto-refresh every 90 seconds if enabled
+  // Only depends on autoRefresh — checks document.hidden at fire-time to skip
+  // hidden-tab fetches without resetting the 90-second countdown.
   useEffect(() => {
-    if (autoRefresh && isTabVisible) {
-      const interval = setInterval(() => {
-        fetchLiveData();
-      }, 90000); // 90 seconds
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, gameweek, isTabVisible]);
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchLiveDataRef.current();
+      }
+    }, 90000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   // Auto-load when gameweek changes
   useEffect(() => {
     fetchLiveData();
-  }, [gameweek]);
+  }, [fetchLiveData]);
 
   // Get player info from bootstrap
   const getPlayerInfo = (playerId: number) => {
@@ -208,9 +209,8 @@ export function LiveGameweekData() {
             <div className="flex gap-2 items-end">
               <Button
                 onClick={fetchLiveData}
-                disabled={loading || !hasLiveFixtures}
+                disabled={loading}
                 className="flex-1 sm:flex-none bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!hasLiveFixtures ? "No live fixtures in this gameweek" : ""}
               >
                 {loading ? (
                   <>
@@ -243,8 +243,7 @@ export function LiveGameweekData() {
             <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
               <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               Last updated: {lastUpdate.toLocaleTimeString()}
-              {autoRefresh && isTabVisible && <span className="text-green-600 font-semibold">(Auto-refresh ON)</span>}
-              {autoRefresh && !isTabVisible && <span className="text-orange-600 font-semibold">(Auto-refresh PAUSED - tab inactive)</span>}
+              {autoRefresh && <span className="text-green-600 font-semibold">(Auto-refresh ON)</span>}
             </div>
           )}
 
@@ -303,7 +302,7 @@ export function LiveGameweekData() {
                   key={value}
                   variant={sortBy === value ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setSortBy(value as any)}
+                  onClick={() => setSortBy(value as typeof sortBy)}
                   className="flex-1 sm:flex-none"
                 >
                   <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
@@ -378,13 +377,11 @@ export function LiveGameweekData() {
                   <tr key={id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                        <PlayerImage
+                          code={player.code}
+                          teamCode={player.team_code}
                           alt={player.web_name}
                           className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.team_code}.png`;
-                          }}
                         />
                         <div>
                           <div className="font-semibold text-gray-900">{player.web_name}</div>
@@ -445,13 +442,11 @@ export function LiveGameweekData() {
             return (
               <Card key={id} className="p-3 bg-gray-50">
                 <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                  <PlayerImage
+                    code={player.code}
+                    teamCode={player.team_code}
                     alt={player.web_name}
                     className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                    onError={(e) => {
-                      e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.team_code}.png`;
-                    }}
                   />
                   <div className="flex-1">
                     <div className="font-bold text-gray-900">{player.web_name}</div>

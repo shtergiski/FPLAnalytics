@@ -20,9 +20,13 @@ interface FPLStore {
   budget: number;
   freeTransfers: number;
 
+  // Live stats cache for partial updates
+  liveStats: Map<number, Record<string, unknown>>;
+
   // Actions
   fetchBootstrapData: () => Promise<void>;
   fetchFixtures: () => Promise<void>;
+  updateLivePlayerStats: (playerUpdates: Array<{ id: number; stats: Record<string, unknown> }>) => void;
   getPlayerFixtures: (playerId: number, numFixtures?: number) => PlayerFixture[];
   getTeamName: (teamId: number) => string;
   getAverageFDR: (playerId: number) => number;
@@ -879,6 +883,7 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
   budget: 1000, // £100.0m
   freeTransfers: 1,
   bootstrap: null,
+  liveStats: new Map(),
 
   // Fetch bootstrap-static data
   fetchBootstrapData: async () => {
@@ -958,6 +963,28 @@ export const useFPLStore = create<FPLStore>((set, get) => ({
       set({ fixtures: data });
     } catch (error) {
       set({ fixtures: mockFixtures });
+    }
+  },
+
+  // Partial update: only merge changed player stats, preventing full-page re-renders
+  updateLivePlayerStats: (playerUpdates) => {
+    const { liveStats } = get();
+    const newMap = new Map(liveStats);
+    let changed = false;
+
+    for (const update of playerUpdates) {
+      const existing = newMap.get(update.id);
+      const merged = existing ? { ...existing, ...update.stats } : { ...update.stats };
+
+      // Only flag change if values actually differ
+      if (!existing || JSON.stringify(existing) !== JSON.stringify(merged)) {
+        newMap.set(update.id, merged);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      set({ liveStats: newMap });
     }
   },
 

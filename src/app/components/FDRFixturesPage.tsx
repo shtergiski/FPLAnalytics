@@ -2,27 +2,28 @@ import React, { useEffect } from 'react';
 import { Card } from './ui/card';
 import { useFPLStore } from '../store/fpl-store';
 import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, Star } from 'lucide-react';
+import { TeamBadge } from './ui/team-badge';
 
-// Official FPL FDR Colors
+// Official FPL FDR Colors (from fantasy.premierleague.com)
 const getFDRColor = (difficulty: number) => {
   switch(difficulty) {
-    case 1: return 'bg-[#01FC7C]'; // Bright green (Very Easy) - Official FPL color
-    case 2: return 'bg-[#00FF87]'; // Light green (Easy)
-    case 3: return 'bg-gray-400';  // Gray (neutral)
-    case 4: return 'bg-[#FF1751]'; // Pink/red (Difficult)
+    case 1: return 'bg-[#375523]'; // Dark green (Very Easy)
+    case 2: return 'bg-[#01FC7A]'; // Bright green (Easy)
+    case 3: return 'bg-[#E7E7E7]'; // Light gray (Moderate)
+    case 4: return 'bg-[#FF1751]'; // Red (Difficult)
     case 5: return 'bg-[#861134]'; // Dark red (Very Difficult)
-    default: return 'bg-gray-400';
+    default: return 'bg-[#E7E7E7]';
   }
 };
 
 const getFDRTextColor = (difficulty: number) => {
   switch(difficulty) {
-    case 1: return 'text-gray-900'; // Dark text for bright green
-    case 2: return 'text-gray-900';
-    case 3: return 'text-white';
+    case 1: return 'text-white';      // White text on dark green
+    case 2: return 'text-[#375523]';  // Dark text on bright green
+    case 3: return 'text-[#375523]';  // Dark text on light gray
     case 4: return 'text-white';
     case 5: return 'text-white';
-    default: return 'text-white';
+    default: return 'text-[#375523]';
   }
 };
 
@@ -220,8 +221,8 @@ export function FDRFixturesPage() {
                   </td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 lg:sticky lg:left-16 ${isBestOverallFDR ? 'bg-green-50' : 'bg-white'}`}>
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/badges/70/t${data.team.code}.png`}
+                      <TeamBadge
+                        teamCode={data.team.code}
                         alt={data.team.name}
                         className="w-6 h-6 sm:w-8 sm:h-8"
                       />

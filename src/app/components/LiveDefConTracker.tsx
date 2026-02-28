@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { 
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { FPLService } from '../utils/corsProxy';
 import { useFPLStore } from '../store/fpl-store';
+import { PlayerImage } from './ui/player-image';
+import { TeamBadge } from './ui/team-badge';
 
 interface LivePlayerData {
   id: number;
@@ -41,6 +43,7 @@ interface LivePlayerData {
     ict_index: string;
     total_points: number;
     clearances_blocks_interceptions: number;
+    tackles: number;
     recoveries: number;
   };
   explain: Array<{
@@ -86,7 +89,7 @@ interface FixtureDefensiveData {
 }
 
 export function LiveDefConTracker() {
-  const { bootstrap } = useFPLStore();
+  const { bootstrap, updateLivePlayerStats } = useFPLStore();
   const [gameweek, setGameweek] = useState('28');
   const [liveData, setLiveData] = useState<LivePlayerData[]>([]);
   const [fixtures, setFixtures] = useState<FixtureData[]>([]);
@@ -96,66 +99,73 @@ export function LiveDefConTracker() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<number | 'all'>('all');
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
-  const [isTabVisible, setIsTabVisible] = useState(true);
   const [hasLiveFixtures, setHasLiveFixtures] = useState(true);
+  const autoRefreshRef = useRef(autoRefresh);
+  autoRefreshRef.current = autoRefresh;
+  const fetchLiveDataRef = useRef<() => void>(() => {});
 
-  // Track tab visibility
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsTabVisible(!document.hidden);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  const fetchLiveData = async () => {
+  const fetchLiveData = useCallback(async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      // Fetch live gameweek data
-      const data = await FPLService.loadLiveGameweek(Number(gameweek));
-      setLiveData(data.elements || []);
-      
-      // Fetch fixtures for this gameweek
-      const allFixtures = await FPLService.loadFixtures();
-      const gwFixtures = allFixtures.filter((f: any) => f.event === Number(gameweek));
+      // Fetch live data and fixtures in parallel, always bypassing cache
+      const [data, allFixtures] = await Promise.all([
+        FPLService.loadLiveGameweek(Number(gameweek)),
+        FPLService.loadFixtures(true),
+      ]);
+
+      const elements: LivePlayerData[] = data.elements || [];
+      setLiveData(elements);
+
+      // Partial store update — only push changed stats
+      updateLivePlayerStats(
+        elements
+          .filter((el: LivePlayerData) => el.stats.minutes > 0)
+          .map((el: LivePlayerData) => ({ id: el.id, stats: el.stats as unknown as Record<string, unknown> }))
+      );
+
+      const gwFixtures = allFixtures.filter((f: FixtureData) => f.event === Number(gameweek));
       setFixtures(gwFixtures);
-      
-      // Check if any fixtures are live (started but not finished)
-      const anyLive = gwFixtures.some((f: any) => f.started && !f.finished);
+
+      const anyLive = gwFixtures.some((f: FixtureData) => f.started && !f.finished);
       setHasLiveFixtures(anyLive);
-      
-      // Auto-turn off auto-refresh if no live fixtures
-      if (!anyLive && autoRefresh) {
+
+      if (!anyLive && autoRefreshRef.current) {
         setAutoRefresh(false);
       }
-      
+
       setLastUpdate(new Date());
-    } catch (err: any) {
-      setError(err.message || 'Failed to load live data');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load live data';
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameweek, updateLivePlayerStats]);
+
+  // Keep ref in sync so the interval always calls the latest version
+  fetchLiveDataRef.current = fetchLiveData;
 
   // Auto-refresh every 90 seconds if enabled
+  // Only depends on autoRefresh — checks document.hidden at fire-time to skip
+  // hidden-tab fetches without resetting the 90-second countdown.
   useEffect(() => {
-    if (autoRefresh && isTabVisible) {
-      const interval = setInterval(() => {
-        fetchLiveData();
-      }, 90000);
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh, gameweek, isTabVisible]);
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchLiveDataRef.current();
+      }
+    }, 90000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   // Auto-load when gameweek changes
   useEffect(() => {
     fetchLiveData();
-  }, [gameweek]);
+  }, [fetchLiveData]);
 
   // Get player info
   const getPlayerInfo = (playerId: number) => {
@@ -195,20 +205,22 @@ export function LiveDefConTracker() {
     return info[level as keyof typeof info] || info[3];
   };
 
-  // Calculate defensive contributions from stats directly
+  // Calculate defensive contributions from stats directly (2025/26 rules)
+  // CBIT = Clearances + Blocks + Interceptions + Tackles
   const calculateDefensiveContributions = (livePlayer: LivePlayerData, position: number): number => {
     const stats = livePlayer.stats;
-    
-    // Defenders: clearances_blocks_interceptions only
+    const cbit = (stats.clearances_blocks_interceptions || 0) + (stats.tackles || 0);
+
+    // Defenders: CBIT >= 10 for +2pts
     if (position === 2) {
-      return stats.clearances_blocks_interceptions || 0;
+      return cbit;
     }
-    
-    // Midfielders and Forwards: clearances_blocks_interceptions + recoveries
+
+    // Midfielders and Forwards: CBIT + Recoveries >= 12 for +2pts
     if (position === 3 || position === 4) {
-      return (stats.clearances_blocks_interceptions || 0) + (stats.recoveries || 0);
+      return cbit + (stats.recoveries || 0);
     }
-    
+
     return 0;
   };
 
@@ -220,24 +232,14 @@ export function LiveDefConTracker() {
     let milestoneMet = false;
     let progressPercent = 0;
 
-    // Goalkeeper - Saves milestones
+    // Goalkeeper - Saves milestones: +1pt per every 3 saves (uncapped)
     if (position === 1) {
       milestone = 3; // First milestone at 3 saves
-      if (stats.saves >= 9) {
-        bonusPoints = 3;
-        milestoneMet = true;
-        progressPercent = 100;
-      } else if (stats.saves >= 6) {
-        bonusPoints = 2;
-        milestoneMet = true;
-        progressPercent = (stats.saves / 9) * 100;
-      } else if (stats.saves >= 3) {
-        bonusPoints = 1;
-        milestoneMet = true;
-        progressPercent = (stats.saves / 6) * 100;
-      } else {
-        progressPercent = (stats.saves / 3) * 100;
-      }
+      bonusPoints = Math.floor(stats.saves / 3);
+      milestoneMet = bonusPoints > 0;
+      // Progress toward next milestone
+      const nextMilestone = (bonusPoints + 1) * 3;
+      progressPercent = milestoneMet ? Math.min(100, (stats.saves / nextMilestone) * 100) : (stats.saves / 3) * 100;
     }
     // Defender - 10 defensive contributions
     else if (position === 2) {
@@ -434,9 +436,8 @@ export function LiveDefConTracker() {
             <div className="flex gap-2 items-end">
               <Button
                 onClick={fetchLiveData}
-                disabled={loading || !hasLiveFixtures}
+                disabled={loading}
                 className="flex-1 sm:flex-none bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!hasLiveFixtures ? "No live fixtures in this gameweek" : ""}
               >
                 {loading ? (
                   <>
@@ -469,8 +470,7 @@ export function LiveDefConTracker() {
             <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
               <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               Last updated: {lastUpdate.toLocaleTimeString()}
-              {autoRefresh && isTabVisible && <span className="text-green-600 font-semibold">(Auto-refresh ON)</span>}
-              {autoRefresh && !isTabVisible && <span className="text-orange-600 font-semibold">(Auto-refresh PAUSED - tab inactive)</span>}
+              {autoRefresh && <span className="text-green-600 font-semibold">(Auto-refresh ON)</span>}
             </div>
           )}
 
@@ -524,9 +524,9 @@ export function LiveDefConTracker() {
                 <div className="flex items-center justify-between gap-2 md:gap-4 mb-6 pb-4 border-b-2 border-gray-200">
                   {/* Home Team */}
                   <div className="flex flex-col items-center gap-2 flex-1">
-                    <img
-                      src={`https://resources.premierleague.com/premierleague/badges/70/t${fd.homeTeam?.code}.png`}
-                      alt={fd.homeTeam?.name}
+                    <TeamBadge
+                      teamCode={fd.homeTeam?.code ?? 0}
+                      alt={fd.homeTeam?.name ?? ''}
                       className="w-10 h-10 md:w-12 md:h-12"
                     />
                     <div className="font-bold text-sm md:text-lg text-gray-900 text-center">
@@ -546,9 +546,9 @@ export function LiveDefConTracker() {
                   
                   {/* Away Team */}
                   <div className="flex flex-col items-center gap-2 flex-1">
-                    <img
-                      src={`https://resources.premierleague.com/premierleague/badges/70/t${fd.awayTeam?.code}.png`}
-                      alt={fd.awayTeam?.name}
+                    <TeamBadge
+                      teamCode={fd.awayTeam?.code ?? 0}
+                      alt={fd.awayTeam?.name ?? ''}
                       className="w-10 h-10 md:w-12 md:h-12"
                     />
                     <div className="font-bold text-sm md:text-lg text-gray-900 text-center">
@@ -681,13 +681,11 @@ export function LiveDefConTracker() {
                         ) : (
                           <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
                         )}
-                        <img
-                          src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${playerData.player.code}.png`}
+                        <PlayerImage
+                          code={playerData.player.code}
+                          teamCode={playerData.player.team_code}
                           alt={playerData.player.web_name}
                           className="w-10 h-10 rounded-full object-cover border-2 border-white"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${playerData.player.team_code}.png`;
-                          }}
                         />
                         <div className="flex-1">
                           <div className="font-bold text-sm text-gray-900">
@@ -716,13 +714,11 @@ export function LiveDefConTracker() {
                         ) : (
                           <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
                         )}
-                        <img
-                          src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${playerData.player.code}.png`}
+                        <PlayerImage
+                          code={playerData.player.code}
+                          teamCode={playerData.player.team_code}
                           alt={playerData.player.web_name}
                           className="w-10 h-10 rounded-full object-cover border-2 border-white"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${playerData.player.team_code}.png`;
-                          }}
                         />
                         <div className="flex-1">
                           <div className="font-bold text-sm text-gray-900">

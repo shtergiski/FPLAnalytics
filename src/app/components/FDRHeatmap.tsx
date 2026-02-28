@@ -7,20 +7,31 @@ interface FDRHeatmapProps {
 }
 
 const getDifficultyColor = (difficulty: number): string => {
-  // Official FPL FDR Colors
+  // Official FPL FDR Colors (from fantasy.premierleague.com)
   switch (difficulty) {
     case 1:
-      return 'bg-[#01FC7C]'; // Dark Green - Very Easy
+      return 'bg-[#375523]'; // Dark green - Very Easy
     case 2:
-      return 'bg-[#00FF87]'; // Light Green - Easy
+      return 'bg-[#01FC7A]'; // Bright green - Easy
     case 3:
-      return 'bg-gray-400'; // Gray - Medium
+      return 'bg-[#E7E7E7]'; // Light gray - Medium
     case 4:
-      return 'bg-[#FF1751]'; // Pink/Red - Hard
+      return 'bg-[#FF1751]'; // Red - Hard
     case 5:
-      return 'bg-[#861134]'; // Dark Red - Very Hard
+      return 'bg-[#861134]'; // Dark red - Very Hard
     default:
-      return 'bg-gray-300'; // Neutral gray - no fixture
+      return 'bg-[#E7E7E7]'; // Light gray - no fixture
+  }
+};
+
+const getDifficultyTextColor = (difficulty: number): string => {
+  switch (difficulty) {
+    case 1: return 'text-white';
+    case 2: return 'text-[#375523]';
+    case 3: return 'text-[#375523]';
+    case 4: return 'text-white';
+    case 5: return 'text-white';
+    default: return 'text-[#375523]';
   }
 };
 
@@ -43,13 +54,13 @@ export function FDRHeatmap({ fixtures, className = '' }: FDRHeatmapProps) {
           key={index}
           className={`flex-1 ${getDifficultyColor(fixture.difficulty)} rounded-lg sm:rounded-xl py-2 sm:py-4 px-1 sm:px-3 text-center transition-transform hover:scale-105 cursor-pointer`}
         >
-          <div className="text-[10px] sm:text-xs font-medium text-gray-700 mb-0.5 sm:mb-1">
+          <div className={`text-[10px] sm:text-xs font-medium ${getDifficultyTextColor(fixture.difficulty)} opacity-80 mb-0.5 sm:mb-1`}>
             GW {fixture.gameweek || '-'}
           </div>
-          <div className="font-bold text-xs sm:text-sm text-gray-900 truncate px-0.5">
+          <div className={`font-bold text-xs sm:text-sm ${getDifficultyTextColor(fixture.difficulty)} truncate px-0.5`}>
             {fixture.opponent}
           </div>
-          <div className="text-[10px] sm:text-xs text-gray-700 mt-0.5">
+          <div className={`text-[10px] sm:text-xs ${getDifficultyTextColor(fixture.difficulty)} opacity-80 mt-0.5`}>
             ({fixture.isHome ? 'H' : 'A'})
           </div>
         </div>

@@ -10,6 +10,7 @@ import { PlayerCombobox } from '../ui/player-combobox';
 import { Loading } from '../ui/loading';
 import { useFPLStore } from '../../store/fpl-store';
 import { convertImageToBase64 } from '../../utils/imageUtils';
+import { FPLImages } from '../../utils/corsProxy';
 
 interface HeadToHeadBuilderProps {
   players: Player[];
@@ -41,15 +42,13 @@ export function HeadToHeadBuilder({ players }: HeadToHeadBuilderProps) {
   // Auto-load official player photos when players are selected
   useEffect(() => {
     if (player1) {
-      const photoUrl = `https://resources.premierleague.com/premierleague/photos/players/110x140/p${player1.code}.png`;
-      setPlayer1Image(photoUrl);
+      setPlayer1Image(FPLImages.playerPhoto(player1.code));
     }
   }, [player1]);
 
   useEffect(() => {
     if (player2) {
-      const photoUrl = `https://resources.premierleague.com/premierleague/photos/players/110x140/p${player2.code}.png`;
-      setPlayer2Image(photoUrl);
+      setPlayer2Image(FPLImages.playerPhoto(player2.code));
     }
   }, [player2]);
 

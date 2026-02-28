@@ -137,11 +137,11 @@ export function FDRFixtureBuilder({ players }: FDRFixtureBuilderProps) {
   };
 
   const difficultyColors = [
-    { bg: 'bg-[#01FC7C]', text: 'text-gray-900' },  // FDR 1 - Dark Green
-    { bg: 'bg-[#00FF87]', text: 'text-gray-900' },  // FDR 2 - Light Green
-    { bg: 'bg-gray-400', text: 'text-white' },      // FDR 3 - Gray
-    { bg: 'bg-[#FF1751]', text: 'text-white' },     // FDR 4 - Pink/Red
-    { bg: 'bg-[#861134]', text: 'text-white' },     // FDR 5 - Dark Red
+    { bg: 'bg-[#375523]', text: 'text-white' },        // FDR 1 - Dark green
+    { bg: 'bg-[#01FC7A]', text: 'text-[#375523]' },    // FDR 2 - Bright green
+    { bg: 'bg-[#E7E7E7]', text: 'text-[#375523]' },    // FDR 3 - Light gray
+    { bg: 'bg-[#FF1751]', text: 'text-white' },         // FDR 4 - Red
+    { bg: 'bg-[#861134]', text: 'text-white' },         // FDR 5 - Dark red
   ];
 
   return (

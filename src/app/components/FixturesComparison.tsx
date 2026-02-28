@@ -7,6 +7,7 @@ import { PlayerCombobox } from './ui/player-combobox';
 import { Loading } from './ui/loading';
 import { useFPLStore } from '../store/fpl-store';
 import { convertImageToBase64 } from '../utils/imageUtils';
+import { PlayerImage } from './ui/player-image';
 
 interface FixturesComparisonProps {
   players: Player[];
@@ -16,20 +17,31 @@ interface FixturesComparisonProps {
 }
 
 const getDifficultyColor = (difficulty: number): string => {
-  // Official FPL FDR Colors
+  // Official FPL FDR Colors (from fantasy.premierleague.com)
   switch (difficulty) {
     case 1:
-      return 'bg-[#01FC7C]'; // Dark Green
+      return 'bg-[#375523]'; // Dark green - Very Easy
     case 2:
-      return 'bg-[#00FF87]'; // Light Green
+      return 'bg-[#01FC7A]'; // Bright green - Easy
     case 3:
-      return 'bg-gray-400'; // Gray
+      return 'bg-[#E7E7E7]'; // Light gray - Medium
     case 4:
       return 'bg-[#FF1751]'; // Pink/Red
     case 5:
       return 'bg-[#861134]'; // Dark Red
     default:
-      return 'bg-gray-300'; // Neutral
+      return 'bg-[#E7E7E7]';
+  }
+};
+
+const getDifficultyTextColor = (difficulty: number): string => {
+  switch (difficulty) {
+    case 1: return 'text-white';
+    case 2: return 'text-[#375523]';
+    case 3: return 'text-[#375523]';
+    case 4: return 'text-white';
+    case 5: return 'text-white';
+    default: return 'text-[#375523]';
   }
 };
 
@@ -166,14 +178,11 @@ export function FixturesComparison({
                     </button>
                     
                     <div className="aspect-square bg-white/20 rounded-2xl flex items-center justify-center mb-3 overflow-hidden">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                      <PlayerImage
+                        code={player.code}
+                        teamCode={player.team_code}
                         alt={player.web_name}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement!.innerHTML = '<div class="text-center"><div class="w-12 h-12 text-purple-400 mx-auto mb-2">👤</div></div>';
-                        }}
                       />
                     </div>
                     
@@ -198,10 +207,10 @@ export function FixturesComparison({
                         key={idx}
                         className={`${getDifficultyColor(fixture.difficulty || 0)} rounded-xl py-3 px-4 text-center transition-transform hover:scale-105 cursor-pointer shadow-md`}
                       >
-                        <div className="text-xs font-medium text-gray-700">
+                        <div className={`text-xs font-medium ${getDifficultyTextColor(fixture.difficulty || 0)} opacity-80`}>
                           Gameweek {fixture.gameweek}
                         </div>
-                        <div className="text-lg font-black text-gray-900">
+                        <div className={`text-lg font-black ${getDifficultyTextColor(fixture.difficulty || 0)}`}>
                           {fixture.opponent} ({fixture.isHome ? 'H' : 'A'})
                         </div>
                       </div>

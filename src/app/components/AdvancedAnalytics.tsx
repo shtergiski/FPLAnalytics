@@ -13,10 +13,10 @@ export function AdvancedAnalytics({ players }: AdvancedAnalyticsProps) {
   // Position Distribution
   const positionDistribution = useMemo(() => {
     const positions = [
-      { name: 'Goalkeepers', value: players.filter(p => p.element_type === 1).length, color: '#eab308' },
-      { name: 'Defenders', value: players.filter(p => p.element_type === 2).length, color: '#22c55e' },
-      { name: 'Midfielders', value: players.filter(p => p.element_type === 3).length, color: '#3b82f6' },
-      { name: 'Forwards', value: players.filter(p => p.element_type === 4).length, color: '#ef4444' },
+      { name: 'GKP', value: players.filter(p => p.element_type === 1).length, color: '#eab308' },
+      { name: 'DEF', value: players.filter(p => p.element_type === 2).length, color: '#22c55e' },
+      { name: 'MID', value: players.filter(p => p.element_type === 3).length, color: '#3b82f6' },
+      { name: 'FWD', value: players.filter(p => p.element_type === 4).length, color: '#ef4444' },
     ];
     return positions;
   }, [players]);
@@ -24,7 +24,7 @@ export function AdvancedAnalytics({ players }: AdvancedAnalyticsProps) {
   // Top Teams by Total Points
   const teamStats = useMemo(() => {
     const teamMap = new Map<string, { name: string; totalPoints: number; avgPoints: number; count: number }>();
-    
+
     players.forEach(player => {
       if (!teamMap.has(player.team_name)) {
         teamMap.set(player.team_name, {

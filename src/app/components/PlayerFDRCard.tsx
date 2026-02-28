@@ -8,20 +8,24 @@ interface PlayerFDRCardProps {
   onClose?: () => void;
 }
 
+// Official FPL FDR Colors (from fantasy.premierleague.com)
 const getDifficultyColor = (difficulty: number): string => {
   switch (difficulty) {
-    case 1:
-      return 'bg-[#00FF87]'; // Bright green
-    case 2:
-      return 'bg-[#7FFF00]'; // Lime green
-    case 3:
-      return 'bg-[#FFEB3B]'; // Yellow
-    case 4:
-      return 'bg-[#FF6B6B]'; // Coral/Red
-    case 5:
-      return 'bg-[#FF3838]'; // Bright red
-    default:
-      return 'bg-gray-300'; // Neutral
+    case 1: return 'bg-[#375523]'; // Dark green - Very Easy
+    case 2: return 'bg-[#01FC7A]'; // Bright green - Easy
+    case 3: return 'bg-[#E7E7E7]'; // Light gray - Moderate
+    case 4: return 'bg-[#FF1751]'; // Red - Difficult
+    case 5: return 'bg-[#861134]'; // Dark red - Very Difficult
+    default: return 'bg-[#E7E7E7]';
+  }
+};
+
+const getDifficultyTextColor = (difficulty: number): string => {
+  switch (difficulty) {
+    case 1: return 'text-white';
+    case 2: return 'text-[#375523]';
+    case 3: return 'text-[#375523]';
+    default: return 'text-white';
   }
 };
 
@@ -136,10 +140,10 @@ export function PlayerFDRCard({ player, fixtures, onClose }: PlayerFDRCardProps)
                 key={index}
                 className={`${getDifficultyColor(fixture.difficulty)} rounded-2xl py-6 px-6 transition-all hover:scale-105 cursor-pointer shadow-xl`}
               >
-                <div className="text-sm font-semibold text-gray-700 mb-1">
+                <div className={`text-sm font-semibold ${getDifficultyTextColor(fixture.difficulty)} opacity-80 mb-1`}>
                   GW {fixture.gameweek || '-'}
                 </div>
-                <div className="text-2xl font-black text-gray-900">
+                <div className={`text-2xl font-black ${getDifficultyTextColor(fixture.difficulty)}`}>
                   {fixture.opponent === '-' ? '-' : `${fixture.opponent} (${fixture.isHome ? 'H' : 'A'})`}
                 </div>
               </div>

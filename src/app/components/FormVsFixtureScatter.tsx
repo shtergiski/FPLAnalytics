@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label, Legend } from 'recharts';
 import type { Player } from '../types/fpl';
 import { Card } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
@@ -10,13 +10,49 @@ interface FormVsFixtureScatterProps {
   className?: string;
 }
 
+// Position colors for "all" mode
+const POSITION_COLORS: Record<number, { fill: string; stroke: string; label: string }> = {
+  1: { fill: '#eab308', stroke: '#ca8a04', label: 'GKP' },
+  2: { fill: '#22c55e', stroke: '#16a34a', label: 'DEF' },
+  3: { fill: '#3b82f6', stroke: '#2563eb', label: 'MID' },
+  4: { fill: '#ef4444', stroke: '#dc2626', label: 'FWD' },
+};
+
+// 10 distinct colors for individual player mode
+const PLAYER_PALETTE = [
+  { fill: '#8b5cf6', stroke: '#7c3aed' },
+  { fill: '#ec4899', stroke: '#db2777' },
+  { fill: '#f59e0b', stroke: '#d97706' },
+  { fill: '#10b981', stroke: '#059669' },
+  { fill: '#3b82f6', stroke: '#2563eb' },
+  { fill: '#ef4444', stroke: '#dc2626' },
+  { fill: '#06b6d4', stroke: '#0891b2' },
+  { fill: '#84cc16', stroke: '#65a30d' },
+  { fill: '#f97316', stroke: '#ea580c' },
+  { fill: '#6366f1', stroke: '#4f46e5' },
+];
+
+interface ScatterPoint {
+  x: number;
+  y: number;
+  name: string;
+  price: string;
+  ownership: string;
+  playerId: number;
+  position: number;
+  color: string;
+  strokeColor: string;
+}
+
 export function FormVsFixtureScatter({ players, getAverageFDR, className = '' }: FormVsFixtureScatterProps) {
   const [positionFilter, setPositionFilter] = useState('all');
-  
+
+  const isTopTenMode = positionFilter !== 'all';
+
   // Filter players by position
-  const getFilteredPlayers = () => {
+  const filteredPlayers = useMemo(() => {
     let filtered = players.filter(p => parseFloat(p.form) > 0);
-    
+
     if (positionFilter === 'def') {
       filtered = filtered.filter(p => p.element_type === 2)
         .sort((a, b) => parseFloat(b.form) - parseFloat(a.form))
@@ -30,37 +66,59 @@ export function FormVsFixtureScatter({ players, getAverageFDR, className = '' }:
         .sort((a, b) => parseFloat(b.form) - parseFloat(a.form))
         .slice(0, 10);
     } else {
-      filtered = filtered.slice(0, 100); // Show top 100 for 'all'
+      filtered = filtered.slice(0, 100);
     }
-    
+
     return filtered;
-  };
-  
-  // Prepare data for scatter plot
-  const scatterData = getFilteredPlayers()
-    .map(player => ({
-      x: getAverageFDR(player.id), // Average fixture difficulty
-      y: parseFloat(player.form), // Current form
-      name: player.web_name,
-      price: (player.now_cost / 10).toFixed(1),
-      ownership: player.selected_by_percent,
-      playerId: player.id,
-      position: player.element_type
-    }))
-    .filter(d => d.x > 0); // Only include players with fixtures
+  }, [players, positionFilter]);
+
+  // Build scatter data with assigned colors
+  const scatterData: ScatterPoint[] = useMemo(() => {
+    return filteredPlayers
+      .map((player, index) => {
+        const posColor = POSITION_COLORS[player.element_type] || POSITION_COLORS[3];
+        const playerColor = PLAYER_PALETTE[index % PLAYER_PALETTE.length];
+
+        return {
+          x: getAverageFDR(player.id),
+          y: parseFloat(player.form),
+          name: player.web_name,
+          price: (player.now_cost / 10).toFixed(1),
+          ownership: player.selected_by_percent,
+          playerId: player.id,
+          position: player.element_type,
+          color: isTopTenMode ? playerColor.fill : posColor.fill,
+          strokeColor: isTopTenMode ? playerColor.stroke : posColor.stroke,
+        };
+      })
+      .filter(d => d.x > 0);
+  }, [filteredPlayers, getAverageFDR, isTopTenMode]);
+
+  // Group data by position for "all" mode (separate Scatter per position)
+  const positionGroups = useMemo(() => {
+    if (isTopTenMode) return null;
+    const groups: Record<number, ScatterPoint[]> = { 1: [], 2: [], 3: [], 4: [] };
+    scatterData.forEach(d => {
+      if (groups[d.position]) groups[d.position].push(d);
+    });
+    return groups;
+  }, [scatterData, isTopTenMode]);
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ScatterPoint }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const positionNames = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+      const positionNames: Record<number, string> = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
       return (
         <div className="bg-white/95 backdrop-blur-sm border-2 border-purple-200 rounded-xl p-3 sm:p-4 shadow-xl">
-          <div className="font-bold text-gray-900 text-sm sm:text-lg">{data.name}</div>
-          <div className="text-xs sm:text-sm text-gray-600 space-y-1 mt-2">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }} />
+            <span className="font-bold text-gray-900 text-sm sm:text-lg">{data.name}</span>
+          </div>
+          <div className="text-xs sm:text-sm text-gray-600 space-y-1">
             <div className="flex justify-between gap-4">
               <span className="text-gray-500">Position:</span>
-              <span className="font-semibold text-gray-700">{positionNames[data.position as keyof typeof positionNames]}</span>
+              <span className="font-semibold text-gray-700">{positionNames[data.position]}</span>
             </div>
             <div className="flex justify-between gap-4">
               <span className="text-gray-500">Form:</span>
@@ -83,6 +141,23 @@ export function FormVsFixtureScatter({ players, getAverageFDR, className = '' }:
       );
     }
     return null;
+  };
+
+  // Custom dot shape that reads color from data point
+  const CustomDot = (props: { cx?: number; cy?: number; payload?: ScatterPoint }) => {
+    const { cx, cy, payload } = props;
+    if (!cx || !cy || !payload) return null;
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={6}
+        fill={payload.color}
+        stroke={payload.strokeColor}
+        strokeWidth={2}
+        fillOpacity={0.8}
+      />
+    );
   };
 
   return (
@@ -112,52 +187,99 @@ export function FormVsFixtureScatter({ players, getAverageFDR, className = '' }:
       <ResponsiveContainer width="100%" height={350} className="sm:!h-[500px]">
         <ScatterChart margin={{ top: 10, right: 10, bottom: 30, left: 30 }} className="sm:!m-[20px_20px_40px_40px]">
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis 
-            type="number" 
-            dataKey="x" 
+          <XAxis
+            type="number"
+            dataKey="x"
             name="Fixture Difficulty"
             domain={[1, 5]}
             stroke="#6b7280"
             tick={{ fill: '#374151', fontSize: 10 }}
             className="sm:!text-xs"
           >
-            <Label 
-              value="Avg FDR (Lower = Easier)" 
-              offset={-15} 
+            <Label
+              value="Avg FDR (Lower = Easier)"
+              offset={-15}
               position="insideBottom"
               style={{ fill: '#374151', fontWeight: 600, fontSize: '11px' }}
               className="sm:!text-sm"
             />
           </XAxis>
-          <YAxis 
-            type="number" 
-            dataKey="y" 
+          <YAxis
+            type="number"
+            dataKey="y"
             name="Form"
             domain={[0, 'auto']}
             stroke="#6b7280"
             tick={{ fill: '#374151', fontSize: 10 }}
             className="sm:!text-xs"
           >
-            <Label 
-              value="Form" 
-              angle={-90} 
+            <Label
+              value="Form"
+              angle={-90}
               position="insideLeft"
               style={{ fill: '#374151', fontWeight: 600, textAnchor: 'middle', fontSize: '11px' }}
               className="sm:!text-sm"
             />
           </YAxis>
           <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-          <Scatter 
-            data={scatterData} 
-            fill="#8b5cf6"
-            fillOpacity={0.7}
-            stroke="#7c3aed"
-            strokeWidth={2}
-          />
+
+          {/* "All" mode: one Scatter per position for automatic Recharts Legend */}
+          {positionGroups && Object.entries(positionGroups).map(([posKey, points]) => {
+            const pos = Number(posKey);
+            const posConfig = POSITION_COLORS[pos];
+            if (points.length === 0) return null;
+            return (
+              <Scatter
+                key={pos}
+                name={posConfig.label}
+                data={points}
+                fill={posConfig.fill}
+                stroke={posConfig.stroke}
+                strokeWidth={2}
+                fillOpacity={0.8}
+              />
+            );
+          })}
+
+          {/* "Top 10" mode: single Scatter with custom colored dots */}
+          {isTopTenMode && (
+            <Scatter
+              name="Players"
+              data={scatterData}
+              shape={<CustomDot />}
+              legendType="none"
+            />
+          )}
+
+          {/* Show position legend for "all" mode */}
+          {!isTopTenMode && (
+            <Legend
+              wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+              iconType="circle"
+            />
+          )}
         </ScatterChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
+      {/* Player color legend for top 10 mode */}
+      {isTopTenMode && scatterData.length > 0 && (
+        <div className="mt-4 sm:mt-6">
+          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Players</h4>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {scatterData.map((d) => (
+              <div key={d.playerId} className="flex items-center gap-1.5">
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: d.color, border: `2px solid ${d.strokeColor}` }}
+                />
+                <span className="text-xs sm:text-sm font-medium text-gray-700">{d.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quadrant guide */}
       <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 text-center">
         <div className="p-2 sm:p-3 bg-green-50 rounded-lg border-2 border-green-200">
           <div className="text-xl sm:text-2xl mb-1">🎯</div>

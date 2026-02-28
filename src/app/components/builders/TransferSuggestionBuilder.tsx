@@ -8,6 +8,7 @@ import { toPng } from 'html-to-image';
 import { ImagePositionControls } from '../ImagePositionControls';
 import { PlayerCombobox } from '../ui/player-combobox';
 import { convertImageToBase64 } from '../../utils/imageUtils';
+import { FPLImages } from '../../utils/corsProxy';
 import { useFPLStore } from '../../store/fpl-store';
 import { Loading } from '../ui/loading';
 
@@ -48,15 +49,13 @@ export function TransferSuggestionBuilder({ players }: TransferSuggestionBuilder
   // Auto-load official player photos when player is selected
   useEffect(() => {
     if (selectedPlayerOut) {
-      const photoUrl = `https://resources.premierleague.com/premierleague/photos/players/110x140/p${selectedPlayerOut.code}.png`;
-      setImageOut(photoUrl);
+      setImageOut(FPLImages.playerPhoto(selectedPlayerOut.code));
     }
   }, [selectedPlayerOut]);
 
   useEffect(() => {
     if (selectedPlayerIn) {
-      const photoUrl = `https://resources.premierleague.com/premierleague/photos/players/110x140/p${selectedPlayerIn.code}.png`;
-      setImageIn(photoUrl);
+      setImageIn(FPLImages.playerPhoto(selectedPlayerIn.code));
     }
   }, [selectedPlayerIn]);
 

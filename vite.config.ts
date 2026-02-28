@@ -19,4 +19,22 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+
+  // Proxy FPL API requests through Vite dev server to avoid CORS
+  server: {
+    proxy: {
+      '/fpl-api': {
+        target: 'https://fantasy.premierleague.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/fpl-api/, '/api'),
+        secure: true,
+      },
+      '/fpl-img': {
+        target: 'https://fantasy.premierleague.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/fpl-img/, '/dist/img'),
+        secure: true,
+      },
+    },
+  },
 })

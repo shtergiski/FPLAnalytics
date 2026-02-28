@@ -5,6 +5,8 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { toPng } from 'html-to-image';
 import type { Player, PlayerFixture, Team, Fixture } from '../types/fpl';
+import { PlayerImage } from './ui/player-image';
+import { TeamBadge } from './ui/team-badge';
 
 interface FixturesComparisonNewProps {
   players: Player[];
@@ -16,17 +18,17 @@ interface FixturesComparisonNewProps {
 const getDifficultyColor = (difficulty: number): string => {
   switch (difficulty) {
     case 1:
-      return 'bg-[#01FC7C] text-gray-900'; // Bright Green - Official FPL
+      return 'bg-[#375523] text-white'; // Dark green - Very Easy
     case 2:
-      return 'bg-[#00FF87] text-gray-900'; // Light Green
+      return 'bg-[#01FC7A] text-[#375523]'; // Bright green - Easy
     case 3:
-      return 'bg-gray-400 text-white'; // Gray
+      return 'bg-[#E7E7E7] text-[#375523]'; // Light gray - Medium
     case 4:
-      return 'bg-[#FF1751] text-white'; // Pink/Red
+      return 'bg-[#FF1751] text-white'; // Red - Hard
     case 5:
-      return 'bg-[#861134] text-white'; // Dark Red
+      return 'bg-[#861134] text-white'; // Dark red - Very Hard
     default:
-      return 'bg-gray-300 text-gray-700';
+      return 'bg-[#E7E7E7] text-[#375523]';
   }
 };
 
@@ -256,15 +258,12 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
                     className="flex items-center gap-3 p-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200"
                   >
                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/photos/players/40x40/p${player.code}.png`}
+                      <PlayerImage
+                        code={player.code}
+                        teamCode={player.team_code}
                         alt={player.web_name}
+                        photoSize="40x40"
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) parent.innerHTML = '<div class="text-2xl">👤</div>';
-                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -338,18 +337,11 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
                             {/* Player Header */}
                             <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
                               <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                                <img
-                                  src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                                <PlayerImage
+                                  code={player.code}
+                                  teamCode={player.team_code}
                                   alt={player.web_name}
-                                  crossOrigin="anonymous"
                                   className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const parent = e.currentTarget.parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-2xl sm:text-3xl font-black leading-none mb-1">${player.web_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}</div><div class="text-xs font-bold opacity-80">${getPositionName(player.element_type)}</div></div>`;
-                                    }
-                                  }}
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -481,15 +473,10 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
                     className="flex items-center gap-3 p-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200"
                   >
                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`}
+                      <TeamBadge
+                        teamCode={team.code}
                         alt={team.name}
                         className="w-10 h-10 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) parent.innerHTML = '<div class="text-2xl">🏟️</div>';
-                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -563,18 +550,10 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
                             {/* Team Header */}
                             <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
                               <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl flex items-center justify-center p-3 sm:p-4 flex-shrink-0">
-                                <img
-                                  src={`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`}
+                                <TeamBadge
+                                  teamCode={team.code}
                                   alt={team.name}
-                                  crossOrigin="anonymous"
                                   className="w-full h-full object-contain"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const parent = e.currentTarget.parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = `<div class="text-center text-purple-600"><div class="text-2xl sm:text-3xl font-black leading-none">${team.short_name}</div></div>`;
-                                    }
-                                  }}
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -673,9 +652,9 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
           <h3 className="text-sm font-bold text-gray-900 mb-3">Fixture Difficulty Rating (FDR)</h3>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
             {[
-              { diff: 1, label: 'Very Easy', color: 'bg-[#01FC7C]' },
-              { diff: 2, label: 'Easy', color: 'bg-[#00FF87]' },
-              { diff: 3, label: 'Medium', color: 'bg-gray-400' },
+              { diff: 1, label: 'Very Easy', color: 'bg-[#375523]' },
+              { diff: 2, label: 'Easy', color: 'bg-[#01FC7A]' },
+              { diff: 3, label: 'Medium', color: 'bg-[#E7E7E7]' },
               { diff: 4, label: 'Hard', color: 'bg-[#FF1751]' },
               { diff: 5, label: 'Very Hard', color: 'bg-[#861134]' },
             ].map((item) => (
@@ -759,7 +738,7 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
               {/* Player List */}
               {activeTab === 'players' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {filteredPlayers.map((player, index) => {
+                  {filteredPlayers.map((player) => {
                     const isSelected = selectedPlayers.find(p => p.id === player.id);
                     return (
                       <button
@@ -772,8 +751,14 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
                             : 'bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-purple-300 hover:shadow-md'
                         }`}
                       >
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-purple-700 flex-shrink-0">
-                          {index + 1}
+                        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                          <PlayerImage
+                            code={player.code}
+                            teamCode={player.team_code}
+                            alt={player.web_name}
+                            photoSize="40x40"
+                            className="w-full h-full"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-sm text-gray-900 truncate">
@@ -814,15 +799,10 @@ export function FixturesComparisonNew({ players, teams, fixtures, getPlayerFixtu
                         }`}
                       >
                         <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <img
-                            src={`https://resources.premierleague.com/premierleague/badges/t${team.code}.png`}
+                          <TeamBadge
+                            teamCode={team.code}
                             alt={team.name}
                             className="w-10 h-10 object-contain"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) parent.innerHTML = '<div class="text-2xl">🏟️</div>';
-                            }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">

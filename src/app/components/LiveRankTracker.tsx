@@ -108,7 +108,7 @@ export function LiveRankTracker() {
 
   const currentGW = bootstrap?.events.find(e => e.is_current)?.id || 1;
 
-  const fetchTeamData = async (id: string) => {
+  const fetchTeamData = async (id: string, forceRefresh = false) => {
     if (!id || id.trim() === '') {
       setError('Please enter a valid Team ID');
       return;
@@ -118,16 +118,15 @@ export function LiveRankTracker() {
     setError('');
 
     try {
-      // Fetch team info using CORS proxy
-      const teamData: TeamInfo = await FPLService.loadManager(parseInt(id));
+      // Fetch team info using CORS proxy (force refresh to get latest rank)
+      const teamData: TeamInfo = await FPLService.loadManager(parseInt(id), forceRefresh);
       setTeamInfo(teamData);
 
       // Fetch live gameweek data using CORS proxy
       try {
-        const liveTeamData: LiveTeamData = await FPLService.loadManagerTeam(parseInt(id), currentGW);
+        const liveTeamData: LiveTeamData = await FPLService.loadManagerTeam(parseInt(id), currentGW, forceRefresh);
         setLiveData(liveTeamData);
-      } catch (liveErr) {
-        console.warn('Could not load live gameweek data:', liveErr);
+      } catch (_liveErr: unknown) {
         // Continue without live data
       }
 
@@ -137,7 +136,7 @@ export function LiveRankTracker() {
 
       // Auto-select overall view
       setSelectedLeague('overall');
-    } catch (err) {
+    } catch (_err: unknown) {
       setError('Team not found. Please check your Team ID and try again.');
       setTeamInfo(null);
       setLiveData(null);
@@ -146,14 +145,14 @@ export function LiveRankTracker() {
     }
   };
 
-  const fetchLeagueStandings = async (leagueId: number) => {
+  const fetchLeagueStandings = async (leagueId: number, forceRefresh = false) => {
     setLoading(true);
     setError('');
 
     try {
-      const data: LeagueData = await FPLService.loadLeagueStandings(leagueId);
+      const data: LeagueData = await FPLService.loadLeagueStandings(leagueId, forceRefresh);
       setLeagueData(data);
-    } catch (err) {
+    } catch (_err: unknown) {
       setError('Failed to fetch league standings. Please try again.');
       setLeagueData(null);
     } finally {
@@ -178,10 +177,10 @@ export function LiveRankTracker() {
   const handleRefresh = () => {
     if (savedTeamId) {
       setRefreshing(true);
-      fetchTeamData(savedTeamId).finally(() => {
+      fetchTeamData(savedTeamId, true).finally(() => {
         setRefreshing(false);
         if (selectedLeague && selectedLeague !== 'overall') {
-          fetchLeagueStandings(selectedLeague);
+          fetchLeagueStandings(selectedLeague, true);
         }
       });
     }

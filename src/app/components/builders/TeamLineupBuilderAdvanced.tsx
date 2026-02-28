@@ -7,7 +7,7 @@ import { Player } from '../../types/fpl';
 import { ImagePositionControls } from '../ImagePositionControls';
 import { useFPLStore } from '../../store/fpl-store';
 import { TransferPlanningPanel } from '../TransferPlanningPanel';
-import { FPLService } from '../../utils/corsProxy';
+import { FPLService, FPLImages } from '../../utils/corsProxy';
 import { ExportService } from '../../utils/exportService';
 
 interface TeamLineupBuilderAdvancedProps {
@@ -250,17 +250,16 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
     }
   };
 
-  // Get player image URL (CORS-protected, will fallback gracefully)
+  // Get player image URL
   const getPlayerImageUrl = (photoCode: string | null): string | null => {
     if (!photoCode) return null;
-    return `https://resources.premierleague.com/premierleague/photos/players/250x250/p${photoCode}.png`;
+    return FPLImages.playerPhoto(photoCode, '250x250');
   };
 
-  // Get kit image URL (CORS-protected, will fallback gracefully)
+  // Get kit image URL (uses proxy to avoid CORS)
   const getKitImageUrl = (teamCode: number | null, isGK: boolean): string | null => {
     if (!teamCode) return null;
-    const kitType = isGK ? '5' : '1';
-    return `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${teamCode}_${kitType}-220.webp`;
+    return FPLImages.teamKit(teamCode, isGK ? 5 : 1);
   };
 
   const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -446,7 +445,7 @@ export function TeamLineupBuilderAdvanced({ players }: TeamLineupBuilderAdvanced
             </Button>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            ⚠️ Note: FPL images may be blocked by CORS. Upload custom images for best results.
+            💡 Player photos and team kits are loaded from the official FPL CDN. Upload custom images for personalization.
           </p>
         </div>
       </Card>

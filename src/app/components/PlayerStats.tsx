@@ -3,9 +3,9 @@ import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { 
-  Search, 
-  TrendingUp, 
+import {
+  Search,
+  TrendingUp,
   TrendingDown,
   Target,
   Activity,
@@ -19,6 +19,7 @@ import {
   Shield,
   Zap
 } from 'lucide-react';
+import { PlayerImage } from './ui/player-image';
 import { Player } from '../types/fpl';
 import { useFPLStore } from '../store/fpl-store';
 import { 
@@ -246,11 +247,11 @@ export function PlayerStats({ players }: PlayerStatsProps) {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {fixtures.map((fixture, index) => {
                 const difficultyColors = [
-                  'bg-[#01FC7C] text-gray-900',  // FDR 1 - Dark Green
-                  'bg-[#00FF87] text-gray-900',  // FDR 2 - Light Green
-                  'bg-gray-400 text-white',      // FDR 3 - Gray
-                  'bg-[#FF1751] text-white',     // FDR 4 - Pink/Red
-                  'bg-[#861134] text-white',     // FDR 5 - Dark Red
+                  'bg-[#375523] text-white',        // FDR 1 - Dark green
+                  'bg-[#01FC7A] text-[#375523]',    // FDR 2 - Bright green
+                  'bg-[#E7E7E7] text-[#375523]',    // FDR 3 - Light gray
+                  'bg-[#FF1751] text-white',         // FDR 4 - Red
+                  'bg-[#861134] text-white',         // FDR 5 - Dark red
                 ];
                 const colorClass = difficultyColors[(fixture.difficulty || 3) - 1];
                 return (
@@ -377,9 +378,20 @@ export function PlayerStats({ players }: PlayerStatsProps) {
                 return (
                   <tr key={player.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="font-semibold text-gray-900">{player.web_name}</div>
-                        <div className="text-sm text-gray-600">{player.team_name}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                          <PlayerImage
+                            code={player.code}
+                            teamCode={player.team_code}
+                            alt={player.web_name}
+                            photoSize="40x40"
+                            className="w-full h-full"
+                          />
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{player.web_name}</div>
+                          <div className="text-sm text-gray-600">{player.team_name}</div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">

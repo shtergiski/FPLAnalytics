@@ -1,6 +1,7 @@
 // FPL API Types
 export interface Team {
   id: number;
+  code: number;
   name: string;
   short_name: string;
   strength: number;
@@ -8,6 +9,8 @@ export interface Team {
 
 export interface Player {
   id: number;
+  code: number;
+  team_code: number;
   first_name: string;
   second_name: string;
   web_name: string;

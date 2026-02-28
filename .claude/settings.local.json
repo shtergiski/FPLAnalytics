@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build)",
+      "Bash(timeout 15 pnpm dev)",
+      "Bash(ls /c/Project/.env*)",
+      "Bash(xargs grep -l \"event.*live\\\\|gameweek.*live\\\\|calculatePoints\\\\|pointsFor\")",
+      "Bash(xargs grep -l \"loadLiveGameweek\\\\|event.*live\\\\|points\\\\|element_stat\")",
+      "Bash(ls -lah /c/Project/src/app/utils/*.ts)",
+      "WebFetch(domain:fpl.page)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(pnpm exec tsc --noEmit)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "WebFetch(domain:www.premierleague.com)",
+      "WebFetch(domain:fantasy.premierleague.com)",
+      "WebFetch(domain:allfantasytips.com)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}

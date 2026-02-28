@@ -5,8 +5,9 @@ import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import { Player } from '../../types/fpl';
 import { useFPLStore } from '../../store/fpl-store';
-import { FPLService } from '../../utils/corsProxy';
+import { FPLService, FPLImages } from '../../utils/corsProxy';
 import { ExportService } from '../../utils/exportService';
+import { PlayerImage } from '../ui/player-image';
 
 interface SquadPlayer {
   id: number;
@@ -517,13 +518,11 @@ export function TeamPlannerStudio() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <img
-                        src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.code}.png`}
+                      <PlayerImage
+                        code={player.code}
+                        teamCode={player.team_code}
                         alt={player.web_name}
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.team_code}.png`;
-                        }}
                       />
                       <div className="min-w-0">
                         <div className="font-semibold text-gray-900 text-xs sm:text-sm truncate">{player.web_name}</div>
@@ -896,13 +895,11 @@ function PitchPlayerSlot({
         } overflow-hidden transition-all relative shadow-lg`}
       >
         {/* PLAYER PHOTO */}
-        <img
-          src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.photoCode}.png`}
+        <PlayerImage
+          code={Number(player.photoCode)}
+          teamCode={player.teamCode}
           alt={player.webName}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.teamCode}.png`;
-          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
           <X className="w-5 h-5 text-white" />
@@ -957,13 +954,11 @@ function BenchSlot({
       <div className="flex flex-col items-center">
         {/* PLAYER PHOTO */}
         <div className="w-12 h-12 rounded-full overflow-hidden bg-white border-2 border-gray-300 flex items-center justify-center mb-2">
-          <img
-            src={`https://resources.premierleague.com/premierleague/photos/players/110x140/p${player.photoCode}.png`}
+          <PlayerImage
+            code={Number(player.photoCode)}
+            teamCode={player.teamCode}
             alt={player.webName}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = `https://resources.premierleague.com/premierleague/badges/70/t${player.teamCode}.png`;
-            }}
           />
         </div>
         <div className="text-xs font-semibold text-gray-900 text-center line-clamp-1">{player.webName}</div>
@@ -1017,7 +1012,7 @@ function ExportPlayerCard({
               height="565"
               decoding="async"
               className="w-[190px] h-[190px] object-cover"
-              src={player ? `https://resources.premierleague.com/premierleague/photos/players/250x250/p${player.photoCode}.png` : 'https://resources.premierleague.com/premierleague/photos/players/250x250/Photo-Missing.png'}
+              src={player ? FPLImages.playerPhoto(player.photoCode, '250x250') : 'https://resources.premierleague.com/premierleague/photos/players/250x250/Photo-Missing.png'}
               onError={(e) => {
                 e.currentTarget.src = 'https://resources.premierleague.com/premierleague/photos/players/250x250/Photo-Missing.png';
               }}

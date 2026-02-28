@@ -5,6 +5,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from './utils';
 import type { Player } from '../../types/fpl';
+import { PlayerImage } from './player-image';
 
 interface PlayerComboboxProps {
   players: Player[];
@@ -88,6 +89,15 @@ export function PlayerCombobox({
                         value === player.id ? "opacity-100" : "opacity-0"
                       )}
                     />
+                    <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
+                      <PlayerImage
+                        code={player.code}
+                        teamCode={player.team_code}
+                        alt=""
+                        photoSize="40x40"
+                        className="w-full h-full"
+                      />
+                    </div>
                     <div className="flex items-center justify-between flex-1 gap-2">
                       <span className="font-medium">{player.web_name}</span>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -396,13 +396,13 @@ export function ExportablePlayerCard({ player, fixtures }: ExportablePlayerCardP
               <div className="mb-4 sm:mb-6">
                 <div className="flex gap-0.5 sm:gap-1 h-3 sm:h-4 rounded-full overflow-hidden shadow-lg">
                   {fixtures.slice(0, 5).map((fixture, index) => {
-                    // Official FPL FDR Colors
+                    // Official FPL FDR Colors (from fantasy.premierleague.com)
                     const difficultyColors = [
-                      'bg-[#01FC7C]',  // FDR 1 - Dark Green
-                      'bg-[#00FF87]',  // FDR 2 - Light Green  
-                      'bg-gray-400',   // FDR 3 - Gray
-                      'bg-[#FF1751]',  // FDR 4 - Pink/Red
-                      'bg-[#861134]',  // FDR 5 - Dark Red
+                      'bg-[#375523]',  // FDR 1 - Dark green
+                      'bg-[#01FC7A]',  // FDR 2 - Bright green
+                      'bg-[#E7E7E7]',  // FDR 3 - Light gray
+                      'bg-[#FF1751]',  // FDR 4 - Red
+                      'bg-[#861134]',  // FDR 5 - Dark red
                     ];
                     return (
                       <div 

@@ -2,6 +2,7 @@
 // Matches Claude app implementation for CORS-safe exports
 
 import { toPng } from 'html-to-image';
+import { proxyFetchAsBase64 } from './imageUtils';
 
 /**
  * Converts all images in the DOM element to base64 data URLs
@@ -106,58 +107,10 @@ function performExtraction(
 
 /**
  * Strategy 2: Proxy fetch for CORS-blocked images
+ * Delegates to shared multi-proxy utility in imageUtils.ts
  */
 async function proxyFetch(url: string): Promise<string> {
-  // Multiple proxies for better reliability
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  ];
-
-  for (let i = 0; i < proxies.length; i++) {
-    const proxyUrl = proxies[i];
-
-    try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<Response>((_, reject) => {
-        setTimeout(() => reject(new Error('Timeout')), 12000);
-      });
-
-      // Create fetch promise
-      const fetchPromise = fetch(proxyUrl);
-
-      // Race between fetch and timeout
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-      if (!response.ok) {
-        console.warn(`Proxy ${i + 1} failed with HTTP ${response.status}`);
-        continue;
-      }
-
-      const blob = await response.blob();
-
-      // Convert blob to base64 using FileReader
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result);
-          } else {
-            reject(new Error('Failed to read blob'));
-          }
-        };
-        reader.onerror = () => reject(new Error('FileReader error'));
-        reader.readAsDataURL(blob);
-      });
-    } catch (err) {
-      console.warn(`Proxy ${i + 1} failed:`, err);
-      // Try next proxy
-      continue;
-    }
-  }
-
-  throw new Error('All proxies failed for image fetch');
+  return proxyFetchAsBase64(url);
 }
 
 /**

@@ -66,10 +66,15 @@ export function LiveGameweekData() {
   const autoRefreshRef = useRef(autoRefresh);
   autoRefreshRef.current = autoRefresh;
   const fetchLiveDataRef = useRef<() => void>(() => {});
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); };
+  }, []);
 
   const fetchLiveData = useCallback(async () => {
     setLoading(true);
-    setError('');
 
     try {
       // Fetch live data and fixtures in parallel, always bypassing cache
@@ -90,9 +95,15 @@ export function LiveGameweekData() {
       }
 
       setLastUpdate(new Date());
+      setError('');
+      retryCountRef.current = 0;
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load live data';
       setError(message);
+      const delay = Math.min(10000 * Math.pow(2, retryCountRef.current), 120000);
+      retryCountRef.current++;
+      retryTimerRef.current = setTimeout(() => { fetchLiveDataRef.current(); }, delay);
     } finally {
       setLoading(false);
     }
@@ -248,9 +259,18 @@ export function LiveGameweekData() {
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-xs sm:text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className={`flex items-center gap-2 text-xs sm:text-sm rounded-lg p-3 border ${
+              liveData.length > 0
+                ? 'text-amber-700 bg-amber-50 border-amber-200'
+                : 'text-red-600 bg-red-50 border-red-200'
+            }`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
+              <span className="flex-1">
+                {liveData.length > 0
+                  ? `Connection issue — retrying... (showing data from ${lastUpdate?.toLocaleTimeString() ?? 'earlier'})`
+                  : error}
+              </span>
+              {liveData.length > 0 && <RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />}
             </div>
           )}
         </div>

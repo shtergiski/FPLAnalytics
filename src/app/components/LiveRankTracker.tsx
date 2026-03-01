@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useFPLStore } from '../store/fpl-store';
 import { FPLService } from '../utils/corsProxy';
-import { TrendingUp, TrendingDown, Trophy, Users, Target, AlertCircle, Loader2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Lock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Trophy, Users, Target, AlertCircle, Loader2, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Lock, Zap, Activity } from 'lucide-react';
+import { PlayerImage } from './ui/player-image';
 import xLogo from '../../assets/logo.jpg';
 
 interface TeamInfo {
@@ -73,6 +74,224 @@ interface LeagueData {
   };
 }
 
+interface LivePlayerStats {
+  total_points: number;
+  minutes: number;
+  bonus: number;
+  bps: number;
+  goals_scored: number;
+  assists: number;
+  clean_sheets: number;
+  yellow_cards: number;
+  red_cards: number;
+  saves: number;
+}
+
+interface LiveGWElement {
+  id: number;
+  stats: LivePlayerStats;
+}
+
+interface LiveGWData {
+  elements: LiveGWElement[];
+}
+
+interface SquadPlayer {
+  element: number;
+  position: number;
+  multiplier: number;
+  is_captain: boolean;
+  is_vice_captain: boolean;
+  web_name: string;
+  element_type: number;
+  code: number;
+  team_code: number;
+  livePoints: number;
+  effectivePoints: number;
+  minutes: number;
+  isAutoSubbed: boolean;
+  isSubbedOut: boolean;
+}
+
+type PositionKey = 'DEF' | 'MID' | 'FWD';
+const MIN_FORMATION: Record<PositionKey, number> = { DEF: 3, MID: 2, FWD: 1 };
+
+function getPositionKey(elementType: number): PositionKey {
+  if (elementType === 2) return 'DEF';
+  if (elementType === 3) return 'MID';
+  return 'FWD';
+}
+
+function calculateLiveSquad(
+  picks: LiveTeamData['picks'],
+  liveElements: LiveGWElement[],
+  bootstrapElements: Array<{ id: number; web_name: string; element_type: number; code: number; team_code: number }>,
+  transferCost: number,
+  activeChip: string | null
+): { squad: SquadPlayer[]; totalPoints: number } {
+  const liveMap = new Map<number, LiveGWElement>();
+  for (const el of liveElements) liveMap.set(el.id, el);
+
+  const playerMap = new Map<number, (typeof bootstrapElements)[0]>();
+  for (const p of bootstrapElements) playerMap.set(p.id, p);
+
+  const enriched: SquadPlayer[] = picks.map(pick => {
+    const live = liveMap.get(pick.element);
+    const player = playerMap.get(pick.element);
+    return {
+      ...pick,
+      web_name: player?.web_name ?? `Player ${pick.element}`,
+      element_type: player?.element_type ?? 0,
+      code: player?.code ?? 0,
+      team_code: player?.team_code ?? 0,
+      livePoints: live?.stats.total_points ?? 0,
+      effectivePoints: 0,
+      minutes: live?.stats.minutes ?? 0,
+      isAutoSubbed: false,
+      isSubbedOut: false,
+    };
+  });
+
+  const isBenchBoost = activeChip === 'bboost';
+
+  if (!isBenchBoost) {
+    // GKP auto-sub
+    const startingGKP = enriched.find(p => p.position <= 11 && p.element_type === 1);
+    const benchGKP = enriched.find(p => p.position >= 12 && p.element_type === 1);
+    if (startingGKP && startingGKP.minutes === 0 && benchGKP && benchGKP.minutes > 0) {
+      startingGKP.isSubbedOut = true;
+      benchGKP.isAutoSubbed = true;
+      benchGKP.multiplier = 1;
+    }
+
+    // Outfield auto-subs
+    const outfieldBench = enriched
+      .filter(p => p.position >= 12 && p.element_type !== 1)
+      .sort((a, b) => a.position - b.position);
+
+    const outfieldStartersZeroMin = enriched
+      .filter(p => p.position <= 11 && p.element_type !== 1 && p.minutes === 0)
+      .sort((a, b) => a.position - b.position);
+
+    // Count formation of starters who ARE playing
+    const formationCount: Record<PositionKey, number> = { DEF: 0, MID: 0, FWD: 0 };
+    for (const p of enriched) {
+      if (p.position <= 11 && p.element_type !== 1 && p.minutes > 0) {
+        formationCount[getPositionKey(p.element_type)]++;
+      }
+    }
+
+    let benchIdx = 0;
+    for (const starter of outfieldStartersZeroMin) {
+      while (benchIdx < outfieldBench.length) {
+        const sub = outfieldBench[benchIdx];
+        if (sub.minutes === 0 || sub.isAutoSubbed) {
+          benchIdx++;
+          continue;
+        }
+
+        const subPos = getPositionKey(sub.element_type);
+        const testFormation = { ...formationCount };
+        testFormation[subPos]++;
+
+        if (testFormation.DEF >= MIN_FORMATION.DEF &&
+          testFormation.MID >= MIN_FORMATION.MID &&
+          testFormation.FWD >= MIN_FORMATION.FWD) {
+          starter.isSubbedOut = true;
+          sub.isAutoSubbed = true;
+          sub.multiplier = 1;
+          formationCount[subPos]++;
+          benchIdx++;
+          break;
+        }
+        benchIdx++;
+      }
+    }
+  }
+
+  // Captain failover
+  const captain = enriched.find(p => p.is_captain);
+  const viceCaptain = enriched.find(p => p.is_vice_captain);
+  if (captain && captain.minutes === 0 && captain.isSubbedOut) {
+    captain.multiplier = 0;
+    if (viceCaptain && (viceCaptain.minutes > 0 || viceCaptain.isAutoSubbed)) {
+      viceCaptain.multiplier = 2;
+    }
+  }
+
+  // Bench boost: all 15 players count
+  if (isBenchBoost) {
+    for (const p of enriched) {
+      if (p.multiplier === 0) p.multiplier = 1;
+    }
+  }
+
+  // Calculate effective points
+  for (const p of enriched) {
+    if (p.isSubbedOut) {
+      p.effectivePoints = 0;
+      p.multiplier = 0;
+    } else {
+      p.effectivePoints = p.livePoints * p.multiplier;
+    }
+  }
+
+  const activeSquad = enriched.filter(p => !p.isSubbedOut);
+  const totalPoints = activeSquad.reduce((sum, p) => sum + p.effectivePoints, 0) - transferCost;
+
+  return { squad: enriched, totalPoints };
+}
+
+const POSITION_LABELS: Record<number, string> = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+const POSITION_COLORS: Record<number, string> = {
+  1: 'bg-yellow-100 text-yellow-700',
+  2: 'bg-green-100 text-green-700',
+  3: 'bg-blue-100 text-blue-700',
+  4: 'bg-red-100 text-red-700',
+};
+
+function SquadPlayerRow({ player }: { player: SquadPlayer }) {
+  const isBench = player.position >= 12;
+  const isDimmed = (isBench && !player.isAutoSubbed) || player.isSubbedOut;
+
+  return (
+    <div className={`flex items-center gap-2 sm:gap-3 p-2 rounded-lg ${player.isAutoSubbed ? 'bg-green-50 border border-green-200' :
+      player.isSubbedOut ? 'bg-gray-50' :
+        'bg-white border border-gray-100'
+      } ${isDimmed ? 'opacity-50' : ''}`}>
+      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+        <PlayerImage
+          code={player.code}
+          teamCode={player.team_code}
+          alt={player.web_name}
+          photoSize="40x40"
+          className="w-full h-full"
+        />
+      </div>
+      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${POSITION_COLORS[player.element_type] || ''}`}>
+        {POSITION_LABELS[player.element_type] || '?'}
+      </span>
+      <span className="flex-1 text-sm font-medium text-gray-900 truncate">
+        {player.web_name}
+        {player.is_captain && <span className="ml-1 text-xs text-purple-600 font-bold">(C)</span>}
+        {player.is_vice_captain && <span className="ml-1 text-xs text-gray-500 font-bold">(V)</span>}
+      </span>
+      {player.isAutoSubbed && (
+        <span className="text-[10px] bg-green-600 text-white px-1.5 py-0.5 rounded font-bold flex-shrink-0">IN</span>
+      )}
+      {player.isSubbedOut && (
+        <span className="text-[10px] bg-gray-400 text-white px-1.5 py-0.5 rounded font-bold flex-shrink-0">OUT</span>
+      )}
+      <div className="text-right min-w-[40px] flex-shrink-0">
+        <div className="text-sm font-bold text-gray-900">{player.effectivePoints}</div>
+        {player.multiplier >= 2 && (
+          <div className="text-[10px] text-purple-600">x{player.multiplier}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type SortColumn = 'rank' | 'total' | 'event_total';
 type SortDirection = 'asc' | 'desc';
 
@@ -89,6 +308,25 @@ export function LiveRankTracker() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('rank');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Live points state
+  const [liveSquad, setLiveSquad] = useState<SquadPlayer[]>([]);
+  const [livePointsTotal, setLivePointsTotal] = useState<number | null>(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null);
+  const [hasLiveFixtures, setHasLiveFixtures] = useState(false);
+
+  // Refs for auto-refresh
+  const autoRefreshRef = useRef(autoRefreshEnabled);
+  autoRefreshRef.current = autoRefreshEnabled;
+  const fetchLiveRef = useRef<() => void>(() => { });
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [liveError, setLiveError] = useState('');
+
+  useEffect(() => {
+    return () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); };
+  }, []);
 
   useEffect(() => {
     if (!bootstrap) {
@@ -179,12 +417,75 @@ export function LiveRankTracker() {
       setRefreshing(true);
       fetchTeamData(savedTeamId, true).finally(() => {
         setRefreshing(false);
+        fetchLiveRef.current();
         if (selectedLeague && selectedLeague !== 'overall') {
           fetchLeagueStandings(selectedLeague, true);
         }
       });
     }
   };
+
+  // Live data fetching
+  const fetchLiveData = useCallback(async () => {
+    if (!liveData || !bootstrap) return;
+
+    try {
+      const [gwLiveData, allFixtures]: [LiveGWData, Array<{ event: number; started: boolean; finished: boolean }>] = await Promise.all([
+        FPLService.loadLiveGameweek(currentGW),
+        FPLService.loadFixtures(true),
+      ]);
+
+      const gwFixtures = allFixtures.filter(f => f.event === currentGW);
+      const anyLive = gwFixtures.some(f => f.started && !f.finished);
+      setHasLiveFixtures(anyLive);
+
+      const { squad, totalPoints } = calculateLiveSquad(
+        liveData.picks,
+        gwLiveData.elements,
+        bootstrap.elements,
+        liveData.entry_history.event_transfers_cost,
+        liveData.active_chip
+      );
+      setLiveSquad(squad);
+      setLivePointsTotal(totalPoints);
+      setLastLiveUpdate(new Date());
+      setLiveError('');
+      retryCountRef.current = 0;
+      if (retryTimerRef.current) { clearTimeout(retryTimerRef.current); retryTimerRef.current = null; }
+
+      if (!anyLive && autoRefreshRef.current) {
+        setAutoRefreshEnabled(false);
+      }
+    } catch (_err: unknown) {
+      const message = _err instanceof Error ? _err.message : 'Failed to load live data';
+      setLiveError(message);
+      const delay = Math.min(10000 * Math.pow(2, retryCountRef.current), 120000);
+      retryCountRef.current++;
+      retryTimerRef.current = setTimeout(() => { fetchLiveRef.current(); }, delay);
+    }
+  }, [liveData, bootstrap, currentGW]);
+
+  fetchLiveRef.current = fetchLiveData;
+
+  // Trigger live data fetch when picks are available
+  useEffect(() => {
+    if (liveData && bootstrap) {
+      fetchLiveData();
+    }
+  }, [liveData, bootstrap, fetchLiveData]);
+
+  // Auto-refresh every 90 seconds
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchLiveRef.current();
+      }
+    }, 90000);
+
+    return () => clearInterval(interval);
+  }, [autoRefreshEnabled]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -350,7 +651,25 @@ export function LiveRankTracker() {
                 <>
                   <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 text-center">
                     <div className="text-xs sm:text-sm opacity-80 mb-1">GW{currentGW} Points</div>
-                    <div className="text-lg sm:text-2xl font-black">{liveData.entry_history.points}</div>
+                    <div className="text-lg sm:text-2xl font-black">
+                      {livePointsTotal !== null ? (
+                        <>
+                          <span className="text-green-300">{livePointsTotal}</span>
+                          {liveData.entry_history.points > 0 && livePointsTotal !== liveData.entry_history.points && (
+                            <span className="text-[10px] opacity-70 block mt-0.5">
+                              history: {liveData.entry_history.points}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        liveData.entry_history.points
+                      )}
+                    </div>
+                    {lastLiveUpdate && (
+                      <div className="text-[10px] opacity-60 mt-1">
+                        Live {lastLiveUpdate.toLocaleTimeString()}
+                      </div>
+                    )}
                   </div>
                   <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 text-center">
                     <div className="text-xs sm:text-sm opacity-80 mb-1">Team Value</div>
@@ -360,6 +679,101 @@ export function LiveRankTracker() {
               )}
             </div>
           </Card>
+
+          {/* Your Squad — Live Points */}
+          {liveSquad.length > 0 && (
+            <Card className="p-4 md:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-yellow-500" />
+                  Your Squad — Live Points
+                </h3>
+                <div className="flex items-center gap-2">
+                  {hasLiveFixtures && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                      className={autoRefreshEnabled ? 'border-green-500 text-green-600' : ''}
+                    >
+                      <Activity className="w-4 h-4 mr-1" />
+                      <span className="hidden sm:inline">{autoRefreshEnabled ? 'Auto ON' : 'Auto OFF'}</span>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => fetchLiveRef.current()}>
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Live error / retry banner */}
+              {liveError && (
+                <div className={`flex items-center gap-2 text-xs sm:text-sm rounded-lg p-3 border mb-4 ${
+                  liveSquad.length > 0
+                    ? 'text-amber-700 bg-amber-50 border-amber-200'
+                    : 'text-red-600 bg-red-50 border-red-200'
+                }`}>
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1">
+                    {liveSquad.length > 0
+                      ? `Connection issue — retrying... (showing data from ${lastLiveUpdate?.toLocaleTimeString() ?? 'earlier'})`
+                      : liveError}
+                  </span>
+                  {liveSquad.length > 0 && <RefreshCw className="w-4 h-4 animate-spin flex-shrink-0" />}
+                </div>
+              )}
+
+              {/* Transfer cost banner */}
+              {liveData && liveData.entry_history.event_transfers_cost > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4 text-sm text-red-700">
+                  Transfer cost: -{liveData.entry_history.event_transfers_cost} pts
+                </div>
+              )}
+
+              {/* Active chip banner */}
+              {liveData?.active_chip && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 mb-4 text-sm text-purple-700 font-semibold">
+                  Active chip: {liveData.active_chip.toUpperCase()}
+                </div>
+              )}
+
+              {/* Starting XI */}
+              <div className="mb-3">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Starting XI</div>
+                <div className="space-y-1">
+                  {liveSquad
+                    .filter(p => p.position <= 11)
+                    .sort((a, b) => a.element_type - b.element_type || a.position - b.position)
+                    .map(player => (
+                      <SquadPlayerRow key={player.element} player={player} />
+                    ))
+                  }
+                </div>
+              </div>
+
+              {/* Bench */}
+              <div>
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Bench</div>
+                <div className="space-y-1">
+                  {liveSquad
+                    .filter(p => p.position >= 12)
+                    .sort((a, b) => a.position - b.position)
+                    .map(player => (
+                      <SquadPlayerRow key={player.element} player={player} />
+                    ))
+                  }
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="mt-4 pt-3 border-t-2 border-gray-200 flex items-center justify-between">
+                <span className="font-bold text-gray-900">Live Total</span>
+                <span className="text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  {livePointsTotal} pts
+                </span>
+              </div>
+            </Card>
+          )}
 
           {/* League Selection */}
           <Card className="p-4 md:p-6">
@@ -372,8 +786,8 @@ export function LiveRankTracker() {
             <button
               onClick={() => handleLeagueSelect('overall')}
               className={`w-full p-3 sm:p-4 rounded-lg border-2 transition-all text-left mb-4 ${selectedLeague === 'overall'
-                  ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-400 shadow-md'
-                  : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow'
+                ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-400 shadow-md'
+                : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow'
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -401,8 +815,8 @@ export function LiveRankTracker() {
                       key={`classic-${league.id}`}
                       onClick={() => handleLeagueSelect(league.id)}
                       className={`p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${selectedLeague === league.id
-                          ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-400 shadow-md'
-                          : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow'
+                        ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-400 shadow-md'
+                        : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -434,8 +848,8 @@ export function LiveRankTracker() {
                       key={`private-${league.id}`}
                       onClick={() => handleLeagueSelect(league.id)}
                       className={`p-3 sm:p-4 rounded-lg border-2 transition-all text-left ${selectedLeague === league.id
-                          ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-400 shadow-md'
-                          : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow'
+                        ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-400 shadow-md'
+                        : 'bg-white border-gray-200 hover:border-purple-300 hover:shadow'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -492,8 +906,15 @@ export function LiveRankTracker() {
                     <div className="bg-white border-2 border-gray-200 rounded-xl p-4">
                       <div className="text-xs sm:text-sm text-gray-600 mb-2">GW{currentGW} Points</div>
                       <div className="text-xl sm:text-2xl font-black text-gray-900">
-                        {liveData.entry_history.points}
+                        {livePointsTotal !== null ? (
+                          <span className="text-green-600">{livePointsTotal}</span>
+                        ) : (
+                          liveData.entry_history.points
+                        )}
                       </div>
+                      {livePointsTotal !== null && liveData.entry_history.points > 0 && livePointsTotal !== liveData.entry_history.points && (
+                        <div className="text-xs text-gray-500 mt-1">Official: {liveData.entry_history.points}</div>
+                      )}
                     </div>
                     <div className="bg-white border-2 border-gray-200 rounded-xl p-4">
                       <div className="text-xs sm:text-sm text-gray-600 mb-2">GW Rank</div>
@@ -629,8 +1050,8 @@ export function LiveRankTracker() {
                     <div
                       key={standing.entry}
                       className={`p-4 rounded-lg border-2 ${isCurrentUser
-                          ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-300'
-                          : 'bg-white border-gray-200'
+                        ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-300'
+                        : 'bg-white border-gray-200'
                         }`}
                     >
                       {/* Header Row */}

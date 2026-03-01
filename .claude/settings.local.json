@@ -14,7 +14,9 @@
       "WebFetch(domain:www.premierleague.com)",
       "WebFetch(domain:fantasy.premierleague.com)",
       "WebFetch(domain:allfantasytips.com)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:fpledits.com)",
+      "WebFetch(domain:www.livefpl.net)"
     ]
   }
 }

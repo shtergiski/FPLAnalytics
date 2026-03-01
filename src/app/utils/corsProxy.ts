@@ -49,30 +49,43 @@ async function fetchFPL(apiPath: string, bustCache = false): Promise<Response> {
   }
 
   // Fallback: third-party CORS proxies (only if no Worker URL configured)
+  // Tries the full proxy chain, then retries once after a short delay
   const proxies = [
     `https://corsproxy.io/?${encodeURIComponent(url)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   ];
 
-  for (const proxyUrl of proxies) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const attemptProxyChain = async (): Promise<Response | null> => {
+    for (const proxyUrl of proxies) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-      const response = await fetch(proxyUrl, {
-        headers: { 'Accept': 'application/json' },
-        signal: controller.signal,
-        cache: bustCache ? 'no-store' : 'default',
-      });
+        const response = await fetch(proxyUrl, {
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal,
+          cache: bustCache ? 'no-store' : 'default',
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (response.ok) return response;
-    } catch (_proxyErr: unknown) {
-      continue;
+        if (response.ok) return response;
+      } catch (_proxyErr: unknown) {
+        continue;
+      }
     }
-  }
+    return null;
+  };
+
+  // First attempt
+  const first = await attemptProxyChain();
+  if (first) return first;
+
+  // Single retry after 5s delay (rate-limit recovery)
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  const retry = await attemptProxyChain();
+  if (retry) return retry;
 
   throw new Error('All proxies failed. Please try again later.');
 }
